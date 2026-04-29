@@ -10,7 +10,7 @@ import os
 # Kini nga code para makit-an sa Python ang 'database' folder sa gawas
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from database.database import get_db, Prediction
+from .database.database import get_db, Prediction
 from src.modules import user_management
 from src.modules import job_management
 from src.modules import interview_logic
