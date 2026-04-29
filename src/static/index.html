@@ -2373,9 +2373,9 @@ footer p {
 
   </main>
 </div>
-
 <script>
-const API = "http://127.0.0.1:8000";
+// 🔥 FIXED: Dili na localhost. Kini na ang mo-detect sa imong Render URL.
+const API = window.location.origin;
 
 let user_id = null;
 let user_name = "";
@@ -2389,257 +2389,234 @@ let interviewCount = 0;
 // UI HELPERS
 // ==========================
 function scrollToSection(id){
-  document.getElementById(id)?.scrollIntoView({behavior:'smooth'});
+    document.getElementById(id)?.scrollIntoView({behavior:'smooth'});
 }
 
 function showLoginModal(){
-  document.getElementById("loginModal").classList.remove("hidden");
-  document.getElementById("registerModal").classList.add("hidden");
+    document.getElementById("loginModal").classList.remove("hidden");
+    document.getElementById("registerModal").classList.add("hidden");
+    document.getElementById("adminModal").classList.add("hidden");
 }
 
 function showRegisterModal(){
-  document.getElementById("registerModal").classList.remove("hidden");
-  document.getElementById("loginModal").classList.add("hidden");
+    document.getElementById("registerModal").classList.remove("hidden");
+    document.getElementById("loginModal").classList.add("hidden");
+    document.getElementById("adminModal").classList.add("hidden");
+}
+
+function showAdminLogin(){
+    document.getElementById("adminModal").classList.remove("hidden");
+    document.getElementById("loginModal").classList.add("hidden");
+    document.getElementById("registerModal").classList.add("hidden");
 }
 
 function closeModals(){
-  document.getElementById("loginModal").classList.add("hidden");
-  document.getElementById("registerModal").classList.add("hidden");
+    document.getElementById("loginModal").classList.add("hidden");
+    document.getElementById("registerModal").classList.add("hidden");
+    document.getElementById("adminModal").classList.add("hidden");
 }
 
 // ==========================
 // LOGIN
 // ==========================
 async function login(){
-  const email = document.getElementById("login_email").value;
-  const password = document.getElementById("login_password").value;
+    const email = document.getElementById("login_email").value;
+    const password = document.getElementById("login_password").value;
 
-  if(!email || !password){
-    alert("Please enter email and password");
-    return;
-  }
+    if(!email || !password){
+        alert("Please enter email and password");
+        return;
+    }
 
-  const res = await fetch(API+"/users/login",{
-    method:"POST",
-    headers:{"Content-Type":"application/x-www-form-urlencoded"},
-    body:`email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
-  });
+    try {
+        const res = await fetch(API + "/users/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+        });
 
-  const data = await res.json();
+        const data = await res.json();
 
-  if(data.user_id){
-    user_id = data.user_id;
-    user_name = data.name;
+        if(res.ok && data.user_id){
+            user_id = data.user_id;
+            user_name = data.name;
 
-    localStorage.setItem("user_id", user_id);
-    localStorage.setItem("user_name", user_name);
-    localStorage.setItem("isLoggedIn", "true");
+            localStorage.setItem("user_id", user_id);
+            localStorage.setItem("user_name", user_name);
+            localStorage.setItem("isLoggedIn", "true");
 
-    enterApp();
-  } else {
-    alert(data.detail || "Login failed");
-  }
+            enterApp();
+        } else {
+            alert(data.detail || "Login failed");
+        }
+    } catch (err) {
+        alert("Connection error. Check your Render server.");
+    }
+}
+
+// ==========================
+// ADMIN LOGIN (FIXED)
+// ==========================
+async function adminLogin() {
+    const user = document.getElementById("admin_user").value;
+    const pass = document.getElementById("admin_pass").value;
+
+    try {
+        const res = await fetch(API + "/admin/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `email=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            alert("Welcome Admin!");
+            window.location.href = "/admin"; // I-load ang admin page
+        } else {
+            alert(data.detail || "Invalid admin credentials");
+        }
+    } catch (err) {
+        alert("Admin login error.");
+    }
 }
 
 // ==========================
 // REGISTER
 // ==========================
 async function register(){
-  const name = document.getElementById("reg_name").value;
-  const email = document.getElementById("reg_email").value;
-  const password = document.getElementById("reg_password").value;
+    const name = document.getElementById("reg_name").value;
+    const email = document.getElementById("reg_email").value;
+    const password = document.getElementById("reg_password").value;
 
-  const res = await fetch(API+"/users/register",{
-    method:"POST",
-    headers:{"Content-Type":"application/x-www-form-urlencoded"},
-    body:`name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
-  });
+    try {
+        const res = await fetch(API + "/users/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+        });
 
-  if(res.ok){
-    alert("Registered successfully!");
-    showLoginModal();
-  } else {
-    alert("Registration failed");
-  }
+        if(res.ok){
+            alert("Registered successfully!");
+            showLoginModal();
+        } else {
+            const data = await res.json();
+            alert(data.detail || "Registration failed");
+        }
+    } catch (err) {
+        alert("Registration error.");
+    }
 }
 
 // ==========================
 // ENTER APP
 // ==========================
 function enterApp(){
-  closeModals();
-
-  document.getElementById("landingPage").classList.add("hidden");
-  document.getElementById("appLayout").classList.remove("hidden");
-
-  document.getElementById("userName").innerText = user_name;
-  document.getElementById("welcomeName").innerText = user_name;
-
-  startHeartbeat(); // 🔥 IMPORTANT FIX
+    closeModals();
+    document.getElementById("landingPage").classList.add("hidden");
+    document.getElementById("appLayout").classList.remove("hidden");
+    document.getElementById("userName").innerText = user_name;
+    document.getElementById("welcomeName").innerText = user_name;
+    startHeartbeat();
 }
 
 // ==========================
-// 🔥 ONLINE STATUS FIX (HEARTBEAT)
+// ONLINE STATUS FIX (PING)
 // ==========================
 function startHeartbeat(){
-  setInterval(() => {
-    if (localStorage.getItem("user_id")) {
-      fetch(API + "/user/heartbeat?user_id=" + localStorage.getItem("user_id"), {
-        method: "POST"
-      });
-    }
-  }, 10000);
+    setInterval(() => {
+        const sid = localStorage.getItem("user_id");
+        if (sid) {
+            fetch(`${API}/user/ping?user_id=${sid}`);
+        }
+    }, 20000); // Every 20 seconds
 }
 
 // ==========================
-// JOB
+// JOB & INTERVIEW (FIXED FLOW)
 // ==========================
 async function createJob(){
-  const jobTitle = document.getElementById("job_title").value;
+    const jobTitle = document.getElementById("job_title").value;
+    if(!jobTitle) { alert("Please enter a job title"); return; }
 
-  const res = await fetch(API+"/jobs",{
-    method:"POST",
-    headers:{"Content-Type":"application/x-www-form-urlencoded"},
-    body:`user_id=${user_id}&job_title=${encodeURIComponent(jobTitle)}`
-  });
+    const res = await fetch(API + "/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `user_id=${user_id}&job_title=${encodeURIComponent(jobTitle)}`
+    });
 
-  const data = await res.json();
-  job_id = data.job_id;
-
-  await loadInterview();
+    const data = await res.json();
+    job_id = data.job_id;
+    await loadInterview();
 }
 
-// ==========================
-// INTERVIEW LOAD
-// ==========================
 async function loadInterview(){
-  const res = await fetch(API+"/interviews",{
-    method:"POST",
-    headers:{"Content-Type":"application/x-www-form-urlencoded"},
-    body:`user_id=${user_id}&job_id=${job_id}`
-  });
-
-  const data = await res.json();
-
-  questions = data.questions;
-  interview_id = data.interview_id;
-
-  answers = {};
-  renderAllQuestions();
-  showSection("interview");
+    const res = await fetch(API + "/interviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `user_id=${user_id}&job_id=${job_id}`
+    });
+    const data = await res.json();
+    questions = data.questions;
+    interview_id = data.interview_id;
+    renderAllQuestions();
+    showSection("interview");
 }
 
-// ==========================
-// RENDER QUESTIONS
-// ==========================
 function renderAllQuestions(){
-  const box = document.getElementById("allQuestions");
-  box.innerHTML = "";
-
-  document.getElementById("totalQNum").innerText = questions.length;
-
-  questions.forEach((q,i)=>{
-    box.innerHTML += `
-      <div class="interview-question-card">
-        <span class="q-badge">Question ${i+1}</span>
-        <div class="q-text">${q}</div>
-
-        <textarea
-          class="answer-input"
-          placeholder="Answer in ENGLISH only..."
-          oninput="answers['q${i}']=this.value"
-        ></textarea>
-      </div>
-    `;
-  });
+    const box = document.getElementById("allQuestions");
+    box.innerHTML = "";
+    document.getElementById("totalQNum").innerText = questions.length;
+    questions.forEach((q, i) => {
+        box.innerHTML += `
+            <div class="interview-question-card">
+                <span class="q-badge">Question ${i+1}</span>
+                <div class="q-text">${q}</div>
+                <textarea class="answer-input" placeholder="Answer in English..." 
+                    oninput="answers['q${i}']=this.value"></textarea>
+            </div>`;
+    });
 }
 
-// ==========================
-// ENGLISH VALIDATION
-// ==========================
-function isEnglish(text){
-  return /^[a-zA-Z0-9\s.,!?'"()\-]+$/.test(text);
-}
-
-// ==========================
-// SUBMIT ANSWERS
-// ==========================
 async function submitAllAnswers(){
+    const formData = new FormData();
+    formData.append("interview_id", interview_id);
+    for(let key in answers) formData.append(key, answers[key]);
 
-  if(!interview_id){
-    alert("No interview found");
-    return;
-  }
-
-  for(let key in answers){
-    if(!answers[key] || answers[key].trim() === ""){
-      alert("Please answer all questions");
-      return;
-    }
-
-    if(!isEnglish(answers[key])){
-      alert("English only answers are allowed!");
-      return;
-    }
-  }
-
-  const formData = new FormData();
-  formData.append("interview_id", interview_id);
-
-  for(let key in answers){
-    formData.append(key, answers[key]);
-  }
-
-  const res = await fetch(API+"/interviews/submit",{
-    method:"POST",
-    body: formData
-  });
-
-  const data = await res.json();
-
-  displayResults(data);
+    const res = await fetch(API + "/interviews/submit", {
+        method: "POST",
+        body: formData
+    });
+    const data = await res.json();
+    displayResults(data);
 }
 
-// ==========================
-// RESULTS
-// ==========================
 function displayResults(data){
-
-  const score = Math.round(data.prediction || 0);
-
-  document.getElementById("resultScore").innerText = score;
-
-  document.getElementById("resultFeedback").innerText =
-    typeof data.feedback === "string"
-      ? data.feedback
-      : JSON.stringify(data.feedback);
-
-  interviewCount++;
-  document.getElementById("statInterviews").innerText = interviewCount;
-
-  showSection("results");
+    document.getElementById("resultScore").innerText = Math.round(data.prediction || 0);
+    document.getElementById("resultFeedback").innerText = data.feedback || "Good job!";
+    interviewCount++;
+    document.getElementById("statInterviews").innerText = interviewCount;
+    showSection("results");
 }
 
-// ==========================
-// SECTION NAV
-// ==========================
 function showSection(id){
-  ["dashboard","choosejob","interview","results"].forEach(s=>{
-    document.getElementById("section-"+s).classList.add("hidden");
-  });
-
-  document.getElementById("section-"+id).classList.remove("hidden");
+    ["dashboard","choosejob","interview","results"].forEach(s => {
+        document.getElementById("section-"+s).classList.add("hidden");
+    });
+    document.getElementById("section-"+id).classList.remove("hidden");
 }
 
-// ==========================
-// AUTO LOGIN SESSION
-// ==========================
+function logout(){
+    localStorage.clear();
+    window.location.reload();
+}
+
 window.onload = () => {
-  if(localStorage.getItem("isLoggedIn") === "true"){
-    user_id = localStorage.getItem("user_id");
-    user_name = localStorage.getItem("user_name");
-    enterApp();
-  }
+    if(localStorage.getItem("isLoggedIn") === "true"){
+        user_id = localStorage.getItem("user_id");
+        user_name = localStorage.getItem("user_name");
+        enterApp();
+    }
 };
 </script>
 </body>
