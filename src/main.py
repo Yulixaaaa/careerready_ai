@@ -46,8 +46,8 @@ def home():
 
 @app.get("/admin")
 def admin_page():
-    # Serve admin.html — auth is handled on the client side via localStorage
     return FileResponse(os.path.join(STATIC_DIR, "admin.html"))
+
 
 # ===============================
 # REGISTER & LOGIN
@@ -65,6 +65,7 @@ def register_user(
     user = user_management.create_user(db, name, email, password)
     return {"status": "success", "user_id": user.user_id, "name": user.name}
 
+
 @app.post("/users/login")
 def login_user(
     email: str = Form(...),
@@ -79,14 +80,15 @@ def login_user(
     db.commit()
     return {"user_id": user.user_id, "name": user.name}
 
+
 # ===============================
 # ADMIN ENDPOINTS
 # ===============================
 @app.post("/admin/login")
 def admin_login(email: str = Form(...), password: str = Form(...)):
     """
-    Simple admin credential check.
-    IMPORTANT: Change these credentials and use environment variables in production!
+    Admin credential check.
+    Use environment variables in production!
     """
     ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
@@ -96,20 +98,24 @@ def admin_login(email: str = Form(...), password: str = Form(...)):
 
     raise HTTPException(status_code=401, detail="Invalid admin credentials")
 
+
 @app.get("/admin/analytics")
 def get_analytics(db: Session = Depends(get_db)):
     predictions = db.query(Prediction).all()
-    scores = [p.result for p in predictions if p.result is not None]
+    # FIX: Filter out None results and round all scores to 2 decimal places
+    scores = [round(float(p.result), 2) for p in predictions if p.result is not None]
     return {
         "total_interviews": len(scores),
         "average_score": round(sum(scores) / len(scores), 2) if scores else 0,
-        "highest_score": max(scores) if scores else 0,
-        "lowest_score": min(scores) if scores else 0
+        "highest_score": round(max(scores), 2) if scores else 0,
+        "lowest_score": round(min(scores), 2) if scores else 0
     }
+
 
 @app.get("/admin/users")
 def admin_users(db: Session = Depends(get_db)):
     return admin_management.get_all_users(db)
+
 
 # ===============================
 # JOBS & INTERVIEWS
@@ -122,6 +128,7 @@ def create_job(
 ):
     job = job_management.create_job(db, user_id, job_title)
     return {"job_id": job.job_id, "job_title": job.job_title}
+
 
 @app.post("/interviews")
 def start_interview(
@@ -137,6 +144,7 @@ def start_interview(
     interview = interview_logic.create_interview(db, user_id, job_id, questions)
     return {"interview_id": interview.interview_id, "questions": questions}
 
+
 @app.post("/interviews/submit")
 async def submit_answers(
     request: Request,
@@ -146,16 +154,27 @@ async def submit_answers(
     form = await request.form()
     answers = {k: v for k, v in form.items() if k != "interview_id"}
 
-    prediction, feedback = interview_logic.submit_and_analyze_answers(
+    prediction, result = interview_logic.submit_and_analyze_answers(
         db=db,
         interview_id=interview_id,
         user_answers=answers,
         ai_model=ai_model
     )
+
+    # FIX: result is now a dict with score + breakdown fields
+    if isinstance(result, dict) and "error" in result:
+        raise HTTPException(status_code=500, detail=result["error"])
+
     return {
-        "prediction": prediction.result if prediction else 0,
-        "feedback": feedback
+        "prediction": round(float(result.get("score", 0)), 2) if isinstance(result, dict) else 0,
+        "feedback":   result.get("feedback", "Analysis complete.") if isinstance(result, dict) else str(result),
+        # Performance breakdown — all rounded to whole numbers for display
+        "communication":   round(result.get("communication",   0)) if isinstance(result, dict) else 0,
+        "technical":       round(result.get("technical",       0)) if isinstance(result, dict) else 0,
+        "problem_solving": round(result.get("problem_solving", 0)) if isinstance(result, dict) else 0,
+        "confidence":      round(result.get("confidence",      0)) if isinstance(result, dict) else 0,
     }
+
 
 # ===============================
 # USER PING (online status)
@@ -169,9 +188,9 @@ def user_ping(user_id: int, db: Session = Depends(get_db)):
         db.commit()
     return {"status": "ok"}
 
+
 @app.get("/user/offline")
 def user_offline(user_id: int, db: Session = Depends(get_db)):
-    """Called when user logs out to mark them offline."""
     user = user_management.get_user_by_id(db, user_id)
     if user:
         user.is_online = False

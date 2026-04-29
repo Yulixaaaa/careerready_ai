@@ -61,13 +61,13 @@ def normalize_job_title(job_title: str) -> str:
 
 
 # ==============================
-# GET RANDOM 10 QUESTIONS
+# GET RANDOM QUESTIONS
 # ==============================
-def get_random_questions(job_title: str, total: int = 10, db=None, user_id=None) -> List[str]:
+def get_random_questions(job_title: str, total: int = 5, db=None, user_id=None) -> List[str]:
     data = load_sample_questions()
 
     if not data:
-        return ["Tell me about yourself"]
+        return ["Tell me about yourself."]
 
     fixed_title = normalize_job_title(job_title)
 
@@ -75,7 +75,7 @@ def get_random_questions(job_title: str, total: int = 10, db=None, user_id=None)
     pool = data.get(fixed_title, []) or data.get("General", [])
 
     if not pool:
-        return ["Tell me about yourself"]
+        return ["Tell me about yourself."]
 
     # 2. Collect used questions from past interviews
     used_questions = set()
@@ -89,13 +89,13 @@ def get_random_questions(job_title: str, total: int = 10, db=None, user_id=None)
             try:
                 used = json.loads(i.questions)
                 used_questions.update(used)
-            except:
+            except Exception:
                 pass
 
     # 3. Remove already used questions
     fresh_pool = [q for q in pool if q not in used_questions]
 
-    # 4. fallback if everything was used
+    # 4. Fallback if everything was used
     if len(fresh_pool) < total:
         fresh_pool = pool
 
@@ -141,15 +141,14 @@ def get_interview_by_id(db: Session, interview_id: int):
 def get_interview_questions(interview: Interview) -> List[str]:
     if not interview or not interview.questions:
         return []
-
     try:
         return json.loads(interview.questions)
-    except:
+    except Exception:
         return []
 
 
 # ==============================
-# SUBMIT + AI ANALYSIS
+# SUBMIT + AI ANALYSIS  ← FIXED
 # ==============================
 def submit_and_analyze_answers(
     db: Session,
@@ -164,18 +163,29 @@ def submit_and_analyze_answers(
 
     questions = get_interview_questions(interview)
 
+    # -------------------------------------------------------
+    # FIX: Frontend sends answers as q0, q1, q2...
+    # Map them back to the actual question text for analysis
+    # -------------------------------------------------------
     analysis_input = []
+    for i, question in enumerate(questions):
+        # Try key like "q0", "q1", etc. (frontend format)
+        answer_key = f"q{i}"
+        answer = user_answers.get(answer_key, "").strip()
 
-    for q in questions:
+        # Fallback: try the question text itself as key (old format)
+        if not answer:
+            answer = user_answers.get(question, "").strip()
+
         analysis_input.append({
-            "question": q,
-            "answer": user_answers.get(q, "")
+            "question": question,
+            "answer": answer
         })
 
     try:
         result = ai_model.analyze_interview_answers(analysis_input)
 
-        score = float(result.get("score", 0))
+        score = round(float(result.get("score", 0)), 2)
 
         prediction = Prediction(
             interview_id=interview_id,
@@ -187,10 +197,8 @@ def submit_and_analyze_answers(
         db.commit()
         db.refresh(prediction)
 
-        return prediction, result.get(
-            "feedback",
-            "Interview analysis complete."
-        )
+        # Return the full result dict as feedback (includes breakdown)
+        return prediction, result
 
     except Exception as e:
         db.rollback()
