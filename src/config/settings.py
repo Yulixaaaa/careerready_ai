@@ -1,15 +1,18 @@
-# src/config/settings.py
+import os
 
 class Settings:
     """
     Configuration settings for the application.
     """
-    # Example PostgreSQL connection URL:
-    # Replace with your actual database credentials
-    # Format: postgresql://username:password@host:port/database_name
-    DATABASE_URL = "postgresql://postgres:Ulyssa28@localhost:5432/Careerready"
+    # 1. Kuhaon ang DATABASE_URL gikan sa Render Environment Variable
+    # 2. Kung wala (local computer), mogamit siya sa imong localhost
+    DATABASE_URL = os.getenv(
+        "DATABASE_URL", 
+        "postgresql://postgres:Ulyssa28@localhost:5432/Careerready"
+    )
     
-    # You can add other settings here, like API keys for external services if needed
-    # Example: OPENAI_API_KEY = "your_openai_api_key"
+    # 3. Importante: Ang Render naggamit og 'postgres://' pero SQLAlchemy kinahanglan 'postgresql://'
+    if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 settings = Settings()
