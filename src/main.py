@@ -4,7 +4,11 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import datetime
+import sys
 import os
+
+# Kini nga code para makit-an sa Python ang 'database' folder sa gawas
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database.database import get_db, Prediction
 from src.modules import user_management
