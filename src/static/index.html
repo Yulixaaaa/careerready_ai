@@ -2374,7 +2374,6 @@ footer p {
   </main>
 </div>
 <script>
-// 🔥 FIXED: Dili na localhost. Kini na ang mo-detect sa imong Render URL.
 const API = window.location.origin;
 
 let user_id = null;
@@ -2386,6 +2385,28 @@ let answers = {};
 let interviewCount = 0;
 
 // ==========================
+// AUTO-LOGIN & REDIRECT FIX
+// ==========================
+window.onload = () => {
+    // 1. Check if the current URL is already the admin page to prevent loops
+    if (window.location.pathname.includes('/admin')) {
+        return; 
+    }
+
+    // 2. Clear Admin flag if they are on the landing page so they can re-login
+    if (window.location.pathname === "/" || window.location.pathname === "/index.html") {
+        // Option: localStorage.removeItem("isAdmin"); 
+    }
+
+    // 3. User Auto-login
+    if(localStorage.getItem("isLoggedIn") === "true"){
+        user_id = localStorage.getItem("user_id");
+        user_name = localStorage.getItem("user_name");
+        enterApp();
+    }
+};
+
+// ==========================
 // UI HELPERS
 // ==========================
 function scrollToSection(id){
@@ -2393,21 +2414,18 @@ function scrollToSection(id){
 }
 
 function showLoginModal(){
+    closeModals();
     document.getElementById("loginModal").classList.remove("hidden");
-    document.getElementById("registerModal").classList.add("hidden");
-    document.getElementById("adminModal").classList.add("hidden");
 }
 
 function showRegisterModal(){
+    closeModals();
     document.getElementById("registerModal").classList.remove("hidden");
-    document.getElementById("loginModal").classList.add("hidden");
-    document.getElementById("adminModal").classList.add("hidden");
 }
 
 function showAdminLogin(){
+    closeModals();
     document.getElementById("adminModal").classList.remove("hidden");
-    document.getElementById("loginModal").classList.add("hidden");
-    document.getElementById("registerModal").classList.add("hidden");
 }
 
 function closeModals(){
@@ -2417,7 +2435,7 @@ function closeModals(){
 }
 
 // ==========================
-// LOGIN
+// LOGIN (USER)
 // ==========================
 async function login(){
     const email = document.getElementById("login_email").value;
@@ -2436,26 +2454,24 @@ async function login(){
         });
 
         const data = await res.json();
-
         if(res.ok && data.user_id){
             user_id = data.user_id;
             user_name = data.name;
-
             localStorage.setItem("user_id", user_id);
             localStorage.setItem("user_name", user_name);
             localStorage.setItem("isLoggedIn", "true");
-
+            localStorage.setItem("isAdmin", "false");
             enterApp();
         } else {
             alert(data.detail || "Login failed");
         }
     } catch (err) {
-        alert("Connection error. Check your Render server.");
+        alert("Connection error. Check your server.");
     }
 }
 
 // ==========================
-// ADMIN LOGIN (FIXED)
+// ADMIN LOGIN (FIXED REDIRECT)
 // ==========================
 async function adminLogin() {
     const user = document.getElementById("admin_user").value;
@@ -2471,46 +2487,24 @@ async function adminLogin() {
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: formData
         });
-        const data = await res.json();
+        
         if (res.ok) {
-            alert("Welcome Admin!");
-            // KINI ANG SOLUSYON SA BLANK PAGE:
+            // Importante: I-set ang flags before redirect
+            localStorage.setItem("isAdmin", "true");
+            localStorage.setItem("isLoggedIn", "false"); 
+            alert("Admin Verified! Redirecting...");
             window.location.href = API + "/admin"; 
         } else {
-            alert(data.detail || "Invalid Credentials");
-        }
-    } catch (err) { alert("Admin portal error."); }
-}
-
-// ==========================
-// REGISTER
-// ==========================
-async function register(){
-    const name = document.getElementById("reg_name").value;
-    const email = document.getElementById("reg_email").value;
-    const password = document.getElementById("reg_password").value;
-
-    try {
-        const res = await fetch(API + "/users/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: `name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
-        });
-
-        if(res.ok){
-            alert("Registered successfully!");
-            showLoginModal();
-        } else {
             const data = await res.json();
-            alert(data.detail || "Registration failed");
+            alert(data.detail || "Invalid Admin Credentials");
         }
-    } catch (err) {
-        alert("Registration error.");
+    } catch (err) { 
+        alert("Admin portal connection error."); 
     }
 }
 
 // ==========================
-// ENTER APP
+// APP LOGIC
 // ==========================
 function enterApp(){
     closeModals();
@@ -2521,31 +2515,28 @@ function enterApp(){
     startHeartbeat();
 }
 
-// ==========================
-// ONLINE STATUS FIX (PING)
-// ==========================
+function logout(){
+    localStorage.clear();
+    window.location.reload();
+}
+
 function startHeartbeat(){
     setInterval(() => {
         const sid = localStorage.getItem("user_id");
-        if (sid) {
-            fetch(`${API}/user/ping?user_id=${sid}`);
-        }
-    }, 20000); // Every 20 seconds
+        if (sid) { fetch(`${API}/user/ping?user_id=${sid}`); }
+    }, 20000);
 }
 
-// ==========================
-// JOB & INTERVIEW (FIXED FLOW)
-// ==========================
+// ... (I-keep ang imong createJob, loadInterview, submitAllAnswers functions diri) ...
+
 async function createJob(){
     const jobTitle = document.getElementById("job_title").value;
     if(!jobTitle) { alert("Please enter a job title"); return; }
-
     const res = await fetch(API + "/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: `user_id=${user_id}&job_title=${encodeURIComponent(jobTitle)}`
     });
-
     const data = await res.json();
     job_id = data.job_id;
     await loadInterview();
@@ -2583,11 +2574,7 @@ async function submitAllAnswers(){
     const formData = new FormData();
     formData.append("interview_id", interview_id);
     for(let key in answers) formData.append(key, answers[key]);
-
-    const res = await fetch(API + "/interviews/submit", {
-        method: "POST",
-        body: formData
-    });
+    const res = await fetch(API + "/interviews/submit", { method: "POST", body: formData });
     const data = await res.json();
     displayResults(data);
 }
