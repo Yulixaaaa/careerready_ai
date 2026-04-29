@@ -3,3 +3,5 @@ uvicorn
 gunicorn
 sqlalchemy
 psycopg2-binary
+passlib[bcrypt]
+python-multipart
