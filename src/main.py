@@ -34,7 +34,6 @@ app.add_middleware(
 # ===============================
 # STATIC FILES
 # ===============================
-# Fixed pathing para sa Render deployment
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(CURRENT_DIR, "static")
 
@@ -47,6 +46,7 @@ def home():
 
 @app.get("/admin")
 def admin_page():
+    # Serve admin.html — auth is handled on the client side via localStorage
     return FileResponse(os.path.join(STATIC_DIR, "admin.html"))
 
 # ===============================
@@ -61,7 +61,7 @@ def register_user(
 ):
     if user_management.get_user_by_email(db, email):
         raise HTTPException(status_code=400, detail="Email already registered")
-    
+
     user = user_management.create_user(db, name, email, password)
     return {"status": "success", "user_id": user.user_id, "name": user.name}
 
@@ -84,15 +84,22 @@ def login_user(
 # ===============================
 @app.post("/admin/login")
 def admin_login(email: str = Form(...), password: str = Form(...)):
-    # Simple check para sa admin credentials
-    if email == "admin" and password == "admin123":
+    """
+    Simple admin credential check.
+    IMPORTANT: Change these credentials and use environment variables in production!
+    """
+    ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+    ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+
+    if email == ADMIN_USERNAME and password == ADMIN_PASSWORD:
         return {"status": "success", "redirect": "/admin"}
+
     raise HTTPException(status_code=401, detail="Invalid admin credentials")
 
 @app.get("/admin/analytics")
 def get_analytics(db: Session = Depends(get_db)):
     predictions = db.query(Prediction).all()
-    scores = [p.result for p in predictions]
+    scores = [p.result for p in predictions if p.result is not None]
     return {
         "total_interviews": len(scores),
         "average_score": round(sum(scores) / len(scores), 2) if scores else 0,
@@ -108,12 +115,20 @@ def admin_users(db: Session = Depends(get_db)):
 # JOBS & INTERVIEWS
 # ===============================
 @app.post("/jobs")
-def create_job(user_id: int = Form(...), job_title: str = Form(...), db: Session = Depends(get_db)):
+def create_job(
+    user_id: int = Form(...),
+    job_title: str = Form(...),
+    db: Session = Depends(get_db)
+):
     job = job_management.create_job(db, user_id, job_title)
     return {"job_id": job.job_id, "job_title": job.job_title}
 
 @app.post("/interviews")
-def start_interview(user_id: int = Form(...), job_id: int = Form(...), db: Session = Depends(get_db)):
+def start_interview(
+    user_id: int = Form(...),
+    job_id: int = Form(...),
+    db: Session = Depends(get_db)
+):
     job = job_management.get_job_by_id(db, job_id)
     if not job:
         raise HTTPException(status_code=400, detail="Invalid job")
@@ -123,19 +138,42 @@ def start_interview(user_id: int = Form(...), job_id: int = Form(...), db: Sessi
     return {"interview_id": interview.interview_id, "questions": questions}
 
 @app.post("/interviews/submit")
-async def submit_answers(request: Request, interview_id: int = Form(...), db: Session = Depends(get_db)):
+async def submit_answers(
+    request: Request,
+    interview_id: int = Form(...),
+    db: Session = Depends(get_db)
+):
     form = await request.form()
     answers = {k: v for k, v in form.items() if k != "interview_id"}
-    
-    prediction, feedback = interview_logic.submit_and_analyze_answers(
-        db=db, interview_id=interview_id, user_answers=answers, ai_model=ai_model
-    )
-    return {"prediction": prediction.result if prediction else 0, "feedback": feedback}
 
+    prediction, feedback = interview_logic.submit_and_analyze_answers(
+        db=db,
+        interview_id=interview_id,
+        user_answers=answers,
+        ai_model=ai_model
+    )
+    return {
+        "prediction": prediction.result if prediction else 0,
+        "feedback": feedback
+    }
+
+# ===============================
+# USER PING (online status)
+# ===============================
 @app.get("/user/ping")
 def user_ping(user_id: int, db: Session = Depends(get_db)):
     user = user_management.get_user_by_id(db, user_id)
     if user:
         user.is_online = True
+        user.last_active = datetime.utcnow()
+        db.commit()
+    return {"status": "ok"}
+
+@app.get("/user/offline")
+def user_offline(user_id: int, db: Session = Depends(get_db)):
+    """Called when user logs out to mark them offline."""
+    user = user_management.get_user_by_id(db, user_id)
+    if user:
+        user.is_online = False
         db.commit()
     return {"status": "ok"}
