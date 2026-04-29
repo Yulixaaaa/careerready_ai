@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Dashboard</title>
+
+<style>
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #f4f6f9;
+  }
+
+  .admin-container {
+    display: flex;
+    height: 100vh;
+  }
+
+  .admin-sidebar {
+    width: 240px;
+    background: #1f2937;
+    color: white;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .admin-sidebar button {
+    background: none;
+    border: none;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .admin-sidebar button:hover {
+    background: #374151;
+  }
+
+  .admin-content {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+  }
+
+  .card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  th, td {
+    padding: 12px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+  }
+
+  .stat-box {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    transition: 0.2s;
+  }
+
+  .stat-box:hover {
+    transform: scale(1.02);
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  /* animation */
+  .tab {
+    animation: fade 0.2s ease-in;
+  }
+
+  @keyframes fade {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+</style>
+</head>
+
+<body>
+
+<div class="admin-container">
+
+  <!-- SIDEBAR -->
+  <aside class="admin-sidebar">
+    <h2>Admin</h2>
+
+    <button onclick="showTab('dashboard')">📊 Dashboard</button>
+    <button onclick="showTab('users')">👤 Users</button>
+    <button onclick="showTab('jobs')">💼 Jobs</button>
+    <button onclick="showTab('analytics')">📈 Analytics</button>
+    <button onclick="logout()">🚪 Logout</button>
+  </aside>
+
+  <!-- CONTENT -->
+  <main class="admin-content">
+
+    <!-- DASHBOARD -->
+    <section id="dashboard" class="tab">
+
+      <div class="card">
+        <h2>Dashboard Overview</h2>
+        <p>Real-time system statistics</p>
+      </div>
+
+      <div class="stats">
+        <div class="stat-box">
+          <h3 id="totalUsers">0</h3>
+          <p>Total Users</p>
+        </div>
+
+        <div class="stat-box">
+          <h3 id="onlineUsers">0</h3>
+          <p>Online Users</p>
+        </div>
+
+        <div class="stat-box">
+          <h3 id="totalInterviews">0</h3>
+          <p>Interviews</p>
+        </div>
+
+        <div class="stat-box">
+          <h3 id="avgScore">0%</h3>
+          <p>Average Score</p>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- USERS -->
+    <section id="users" class="tab hidden">
+
+      <div class="card">
+        <h2>Users</h2>
+        <button onclick="loadUsers()">Refresh</button>
+
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+
+      </div>
+    </section>
+
+    <!-- JOBS -->
+    <section id="jobs" class="tab hidden">
+      <div class="card">
+        <h2>Jobs</h2>
+        <p>Job analytics will go here</p>
+      </div>
+    </section>
+
+    <!-- ANALYTICS -->
+    <section id="analytics" class="tab hidden">
+      <div class="card">
+        <h2>Reports</h2>
+        <p>System analytics and performance data</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- JS -->
+<script>
+if (localStorage.getItem("role") !== "admin") {
+    window.location.href = "/";
+}
+function showTab(tabName) {
+    const tabs = document.querySelectorAll(".tab");
+
+    tabs.forEach(tab => {
+        tab.classList.add("hidden");
+    });
+
+    document.getElementById(tabName).classList.remove("hidden");
+}
+
+async function loadUsers() {
+    try {
+        const res = await fetch("/admin/users");
+        const users = await res.json();
+
+        let html = "";
+        let onlineCount = 0;
+
+        const now = new Date();
+
+        users.forEach(user => {
+
+            let isOnline = false;
+
+            // PRIORITY 1: backend flag
+            if (user.is_online !== undefined) {
+                isOnline = user.is_online;
+            }
+
+            // PRIORITY 2: fallback using last_active
+            else if (user.last_active) {
+                const lastActive = new Date(user.last_active);
+                const diffSeconds = (now - lastActive) / 1000;
+                isOnline = diffSeconds < 30;
+            }
+
+            if (isOnline) onlineCount++;
+
+            html += `
+                <tr>
+                    <td>${user.user_id}</td>
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td>
+                        ${isOnline 
+                            ? "<span style='color:green;font-weight:bold'>ONLINE</span>" 
+                            : "<span style='color:red;font-weight:bold'>OFFLINE</span>"
+                        }
+                    </td>
+                </tr>
+            `;
+        });
+
+        document.getElementById("usersTable").innerHTML = html;
+
+        document.getElementById("totalUsers").innerText = users.length;
+        document.getElementById("onlineUsers").innerText = onlineCount;
+
+    } catch (err) {
+        console.error("Error loading users:", err);
+    }
+}
+
+// DEFAULT TAB
+showTab('dashboard');
+
+// LOGOUT
+function logout(){
+  const uid = localStorage.getItem("user_id");
+
+  if (uid) {
+    fetch(API + "/user/offline?user_id=" + uid);
+  }
+
+  localStorage.clear();
+  location.reload();
+}
+
+// ✅ ADD THIS HERE (VERY BOTTOM)
+window.onload = () => {
+  if (localStorage.getItem("isLoggedIn") === "true") {
+    user_id = localStorage.getItem("user_id");
+    user_name = localStorage.getItem("user_name");
+    enterApp();
+  }
+};
+</script>
+
+</body>
+</html>

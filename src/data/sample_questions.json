@@ -1,0 +1,91 @@
+{
+  "General": [
+    "Tell me about yourself",
+    "What are your strengths?",
+    "Why should we hire you?",
+    "What are your weaknesses?",
+    "Why do you want this job?",
+    "Where do you see yourself in 5 years?",
+    "How do you handle pressure?",
+    "Describe a challenge you solved.",
+    "What motivates you?",
+    "How do you manage time?",
+    "Describe teamwork experience.",
+    "How do you accept criticism?",
+    "What is your biggest achievement?",
+    "Why did you leave your last job?",
+    "What makes you unique?"
+  ],
+
+  "Software Developer": [
+    "Tell me about yourself.",
+    "Why do you want to be a software developer?",
+    "Explain object-oriented programming.",
+    "What programming languages do you know?",
+    "How do you debug code?",
+    "What is an API?",
+    "Explain database normalization.",
+    "What is Git and how do you use it?",
+    "Describe a project you built.",
+    "How do you handle deadlines?",
+    "What is frontend vs backend?",
+    "How do you secure an application?",
+    "What is responsive design?",
+    "How do you optimize performance?",
+    "Why should we hire you?"
+  ],
+
+  "Teacher": [
+    "Tell me about yourself.",
+    "Why do you want to become a teacher?",
+    "How do you manage classroom discipline?",
+    "How do you motivate students?",
+    "How do you handle slow learners?",
+    "What teaching methods do you use?",
+    "How do you communicate with parents?",
+    "How do you assess student progress?",
+    "Describe a challenging classroom situation.",
+    "How do you use technology in teaching?",
+    "How do you handle bullying?",
+    "What are your strengths as a teacher?",
+    "How do you prepare lesson plans?",
+    "How do you inspire students?",
+    "Why should we hire you?"
+  ],
+
+  "Nurse": [
+    "Tell me about yourself.",
+    "Why did you choose nursing?",
+    "How do you handle emergency situations?",
+    "How do you deal with difficult patients?",
+    "How do you administer medication safely?",
+    "How do you manage stress?",
+    "What is patient-centered care?",
+    "How do you prioritize tasks?",
+    "Describe a time you worked in a team.",
+    "How do you maintain confidentiality?",
+    "How do you handle long shifts?",
+    "How do you comfort anxious patients?",
+    "What are your strengths as a nurse?",
+    "How do you prevent infection?",
+    "Why should we hire you?"
+  ],
+
+  "Civil Engineer": [
+    "Tell me about yourself.",
+    "What is your construction experience?",
+    "Explain structural design basics.",
+    "How do you handle project deadlines?",
+    "What software do you use?",
+    "How do you ensure site safety?",
+    "Explain load bearing capacity.",
+    "How do you estimate project costs?",
+    "Describe a difficult project.",
+    "How do you solve onsite issues?",
+    "What is reinforced concrete?",
+    "How do you inspect materials?",
+    "How do you read blueprints?",
+    "How do you handle delays?",
+    "Why should we hire you?"
+  ]
+}
