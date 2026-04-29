@@ -2461,24 +2461,25 @@ async function adminLogin() {
     const user = document.getElementById("admin_user").value;
     const pass = document.getElementById("admin_pass").value;
 
+    const formData = new URLSearchParams();
+    formData.append('email', user);
+    formData.append('password', pass);
+
     try {
         const res = await fetch(API + "/admin/login", {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: `email=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`
+            body: formData
         });
-
         const data = await res.json();
-
         if (res.ok) {
             alert("Welcome Admin!");
-            window.location.href = "/admin"; // I-load ang admin page
+            // KINI ANG SOLUSYON SA BLANK PAGE:
+            window.location.href = API + "/admin"; 
         } else {
-            alert(data.detail || "Invalid admin credentials");
+            alert(data.detail || "Invalid Credentials");
         }
-    } catch (err) {
-        alert("Admin login error.");
-    }
+    } catch (err) { alert("Admin portal error."); }
 }
 
 // ==========================
