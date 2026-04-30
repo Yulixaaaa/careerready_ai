@@ -939,7 +939,7 @@ footer p { font-size: 0.82rem; color: var(--text-3); }
   <nav class="landing-nav">
     <div class="brand" onclick="scrollTo(0,0)">
       <div class="brand-icon">
-        <img src="/static/logo.png" alt="Logo">
+        <img src="/static/images/logo.png" alt="Logo">
       </div>
       CareerReady AI
     </div>
@@ -1110,7 +1110,7 @@ footer p { font-size: 0.82rem; color: var(--text-3); }
         </div>
       </div>
       <div class="about-visual">
-        <div class="about-card"><div class="brand-icon"><img src="/static/logo.png" alt="Logo"></div><div><h4>Our Mission</h4><p>To democratize interview preparation by making AI-powered coaching accessible to every job seeker.</p></div></div>
+        <div class="about-card"><div class="brand-icon"><img src="/static/images/logo.png" alt="Logo"></div><div><h4>Our Mission</h4><p>To democratize interview preparation by making AI-powered coaching accessible to every job seeker.</p></div></div>
         <div class="about-card"><div class="about-card-icon">🧠</div><div><h4>Our Technology</h4><p>Our AI model is trained on thousands of real interview transcripts and hiring outcomes.</p></div></div>
         <div class="about-card"><div class="about-card-icon">🌍</div><div><h4>Our Reach</h4><p>CareerReady AI has helped people across 30+ countries land roles at top companies worldwide.</p></div></div>
         <div class="about-card"><div class="about-card-icon">💡</div><div><h4>Our Values</h4><p>Honesty, transparency, and continuous improvement. We give you real predictions — not just encouragement.</p></div></div>
@@ -1137,7 +1137,7 @@ footer p { font-size: 0.82rem; color: var(--text-3); }
 
   <footer>
     <div class="footer-brand">
-      <div class="brand-icon" style="width:28px;height:28px;"><img src="/static/logo.png" alt="Logo"></div>
+      <div class="brand-icon" style="width:28px;height:28px;"><img src="/static/images/logo.png" alt="Logo"></div>
       CareerReady AI
     </div>
     <p>© 2025 CareerReady AI. All rights reserved.</p>
@@ -1185,7 +1185,7 @@ footer p { font-size: 0.82rem; color: var(--text-3); }
 <div id="appLayout" class="hidden">
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="sidebar-brand-icon"><img src="/static/logo.png" alt="Logo"></div>
+      <div class="sidebar-brand-icon"><img src="/static/images/logo.png" alt="Logo"></div>
       CareerReady AI
     </div>
     <a class="nav-item active" id="nav-dashboard" onclick="showSection('dashboard')"><span class="nav-icon">🏠</span>Dashboard</a>
@@ -1297,7 +1297,7 @@ footer p { font-size: 0.82rem; color: var(--text-3); }
 </div>
 
 <script>
-const API = window.location.origin; // Kini ang maseguro nga naggamit siya sa Render URL
+const API = window.location.origin;
 
 let user_id = null;
 let user_name = "";
@@ -1306,7 +1306,6 @@ let interview_id = null;
 let questions = [];
 let answers = {};
 let interviewCount = 0;
-let heartbeatInterval = null; // Para ma-stop ang heartbeat kung mag-logout
 
 // ==========================
 // SINGLE window.onload
@@ -1406,7 +1405,7 @@ async function login() {
       localStorage.setItem("user_id", user_id);
       localStorage.setItem("user_name", user_name);
       localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("isAdmin", "false"); 
+      localStorage.setItem("isAdmin", "false"); // ← make sure isAdmin is false for regular users
       enterApp();
     } else {
       alert(data.detail || "Login failed");
@@ -1417,7 +1416,7 @@ async function login() {
 }
 
 // ==========================
-// ADMIN LOGIN
+// ADMIN LOGIN — FIXED
 // ==========================
 async function adminLogin() {
   const user = document.getElementById("admin_user").value;
@@ -1440,10 +1439,14 @@ async function adminLogin() {
     });
 
     if (res.ok) {
+      // FIX: Set "isAdmin" = "true" (NOT "role" = "admin")
+      // and ensure isLoggedIn is NOT true so admin page doesn't trigger user auto-login
       localStorage.setItem("isAdmin", "true");
       localStorage.setItem("isLoggedIn", "false");
+      // Clear any leftover user session
       localStorage.removeItem("user_id");
       localStorage.removeItem("user_name");
+
       window.location.href = API + "/admin";
     } else {
       const data = await res.json();
@@ -1465,59 +1468,26 @@ function enterApp() {
   document.getElementById("welcomeName").innerText = user_name;
   document.getElementById("userInitial").innerText = user_name.charAt(0).toUpperCase();
   showSection('dashboard');
-  
-  // SUGOD SA HEARTBEAT
   startHeartbeat();
 }
 
-async function logout() {
+function logout() {
+  // Mark user offline before clearing
   const uid = localStorage.getItem("user_id");
   if (uid) {
-    // I-SET ANG USER SA OFFLINE SA DATABASE BAG-O MAG CLEAR
-    try {
-      await fetch(`${API}/user/offline?user_id=${uid}`);
-    } catch (err) {
-      console.log("Offline request failed", err);
-    }
+    fetch(`${API}/user/ping?user_id=${uid}`).catch(() => {});
   }
-  
-  if (heartbeatInterval) clearInterval(heartbeatInterval);
   localStorage.clear();
   window.location.reload();
 }
 
-// FIX: KINI NGA FUNCTION MAOY MO-UPDATE SA ADMIN PANEL
 function startHeartbeat() {
-  if (heartbeatInterval) clearInterval(heartbeatInterval);
-  
-  const sid = localStorage.getItem("user_id");
-  if (!sid) return;
-
-  // Una nga ping inig login
-  fetch(`${API}/user/ping?user_id=${sid}`).catch(() => {});
-
-  // Balik-balik matag 25 segundos (kay 35s ang timeout sa backend)
-  heartbeatInterval = setInterval(() => {
-    const currentId = localStorage.getItem("user_id");
-    if (currentId) { 
-      fetch(`${API}/user/ping?user_id=${currentId}`)
-        .then(r => console.log("Heartbeat sent"))
-        .catch(err => console.log("Heartbeat failed", err)); 
-    }
-  }, 25000);
+  setInterval(() => {
+    const sid = localStorage.getItem("user_id");
+    if (sid) { fetch(`${API}/user/ping?user_id=${sid}`).catch(() => {}); }
+  }, 20000);
 }
 
-// I-OFFLINE KUNG I-CLOSE ANG BROWSER TAB
-window.addEventListener("beforeunload", function (e) {
-  const uid = localStorage.getItem("user_id");
-  if (uid) {
-    navigator.sendBeacon(`${API}/user/offline?user_id=${uid}`);
-  }
-});
-
-// ==========================
-// INTERVIEW LOGIC (STAY THE SAME)
-// ==========================
 function setJob(title) {
   document.getElementById("job_title").value = title;
 }
@@ -1593,6 +1563,7 @@ function displayResults(data) {
   document.getElementById("resultScore").innerText = score + "%";
   document.getElementById("resultFeedback").innerText = data.feedback || "Good job!";
 
+  // Score classification
   let cls = "poor", verdict = "Needs Improvement";
   if (score >= 80) { cls = "excellent"; verdict = "Excellent! High Chance of Success 🎉"; }
   else if (score >= 65) { cls = "good"; verdict = "Good Chance of Success 👍"; }
@@ -1614,17 +1585,18 @@ function displayResults(data) {
 }
 
 function showSection(id) {
-  const sections = ["dashboard", "choosejob", "interview", "results"];
-  sections.forEach(s => {
+  ["dashboard", "choosejob", "interview", "results"].forEach(s => {
     document.getElementById("section-" + s).classList.add("hidden");
   });
   document.getElementById("section-" + id).classList.remove("hidden");
 
-  sections.forEach(s => {
-    const navId = "nav-" + s;
-    document.getElementById(navId)?.classList.remove("active");
+  // Update active nav
+  ["dashboard", "choosejob", "interview", "results"].forEach(s => {
+    const navMap = { dashboard: "nav-dashboard", choosejob: "nav-choosejob", interview: "nav-interview", results: "nav-results" };
+    document.getElementById(navMap[s])?.classList.remove("active");
   });
-  document.getElementById("nav-" + id)?.classList.add("active");
+  const activeMap = { dashboard: "nav-dashboard", choosejob: "nav-choosejob", interview: "nav-interview", results: "nav-results" };
+  document.getElementById(activeMap[id])?.classList.add("active");
 }
 </script>
 </body>
