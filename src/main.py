@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, text
 from datetime import datetime
 from typing import List, Optional
 import sys, os
@@ -36,7 +36,6 @@ if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # ─── ONLINE THRESHOLD (seconds) ──────────────────────────────────────────────
-# FIXED: Usa ra ka threshold para consistent sa backend
 ONLINE_THRESHOLD_SECONDS = 60
 
 # ─── Pages ──────────────────────────────────────────────────────────────────
@@ -47,6 +46,31 @@ def home():
 @app.get("/admin")
 def admin_page():
     return FileResponse(os.path.join(STATIC_DIR, "admin.html"))
+
+# ─── Migration (run once, then remove) ───────────────────────────────────────
+@app.get("/admin/migrate")
+def run_migration(db: Session = Depends(get_db)):
+    """
+    Run this ONCE to add missing columns to the live database.
+    Visit /admin/migrate after deploying, then remove this endpoint.
+    """
+    results = {}
+    migrations = [
+        ("interviews.answers",      "ALTER TABLE interviews ADD COLUMN IF NOT EXISTS answers TEXT"),
+        ("interviews.status",       "ALTER TABLE interviews ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'completed'"),
+        ("interviews.created_at",   "ALTER TABLE interviews ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT now()"),
+        ("users.is_online",         "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE"),
+        ("users.last_active",       "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMP"),
+    ]
+    for label, sql in migrations:
+        try:
+            db.execute(text(sql))
+            db.commit()
+            results[label] = "ok"
+        except Exception as e:
+            db.rollback()
+            results[label] = f"skipped: {str(e)[:60]}"
+    return {"status": "done", "results": results}
 
 # ─── Auth ────────────────────────────────────────────────────────────────────
 @app.post("/users/register")
@@ -86,7 +110,6 @@ def admin_users(db: Session = Depends(get_db)):
         result = []
 
         for u in users:
-            # FIXED: Consistent 60-second threshold
             is_online = False
             if u.last_active:
                 secs = (now - u.last_active).total_seconds()
@@ -94,13 +117,11 @@ def admin_users(db: Session = Depends(get_db)):
             else:
                 is_online = bool(u.is_online) if u.is_online is not None else False
 
-            # Safe interview count
             interview_count = db.query(Interview).filter(
                 Interview.user_id == u.user_id,
                 Interview.status == "completed"
             ).count()
 
-            # Safe best score
             best_pred = (db.query(Prediction)
                            .filter(Prediction.user_id == u.user_id)
                            .order_by(Prediction.result.desc())
@@ -235,7 +256,6 @@ def get_analytics(db: Session = Depends(get_db)):
     total_users  = db.query(User).count()
     now          = datetime.utcnow()
 
-    # FIXED: Consistent 60-second threshold (same as /admin/users)
     online_users = sum(
         1 for u in db.query(User).all()
         if u.last_active and (now - u.last_active).total_seconds() < ONLINE_THRESHOLD_SECONDS
@@ -355,10 +375,6 @@ def get_user_history(user_id: int, db: Session = Depends(get_db)):
 # ─── Ping / Offline ───────────────────────────────────────────────────────────
 @app.get("/user/ping")
 def user_ping(user_id: int, db: Session = Depends(get_db)):
-    """
-    FIXED: Called every 30s from frontend to keep user marked online.
-    Sets is_online=True and refreshes last_active timestamp.
-    """
     user = user_management.get_user_by_id(db, user_id)
     if user:
         user.is_online   = True
@@ -368,10 +384,6 @@ def user_ping(user_id: int, db: Session = Depends(get_db)):
 
 @app.get("/user/offline")
 def user_offline(user_id: int, db: Session = Depends(get_db)):
-    """
-    Called when user closes the tab/browser via beforeunload event.
-    Sets is_online=False immediately.
-    """
     user = user_management.get_user_by_id(db, user_id)
     if user:
         user.is_online   = False
