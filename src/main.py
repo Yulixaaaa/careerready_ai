@@ -128,15 +128,16 @@ def admin_users(db: Session = Depends(get_db)):
                 Interview.status == "completed"
             ).count()
 
-            best_pred = (db.query(Prediction)
-                           .filter(Prediction.user_id == u.user_id)
-                           .order_by(Prediction.result.desc())
-                           .first())
+            # Only select 'result' column to avoid querying missing columns
+            best_score_row = (db.query(Prediction.result)
+                                .filter(Prediction.user_id == u.user_id)
+                                .order_by(Prediction.result.desc())
+                                .first())
 
             final_score = 0
-            if best_pred and best_pred.result is not None:
+            if best_score_row and best_score_row.result is not None:
                 try:
-                    final_score = round(float(best_pred.result), 2)
+                    final_score = round(float(best_score_row.result), 2)
                 except:
                     final_score = 0
 
