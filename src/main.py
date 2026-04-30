@@ -123,9 +123,9 @@ def admin_users(db: Session = Depends(get_db)):
                 secs = (now - u.last_active).total_seconds()
                 is_online = secs < ONLINE_THRESHOLD_SECONDS
 
-            # Count interviews that have a prediction (truly completed)
-            interview_count = db.query(Prediction).filter(
-                Prediction.user_id == u.user_id
+            interview_count = db.query(Interview).filter(
+                Interview.user_id == u.user_id,
+                Interview.status == "completed"
             ).count()
 
             # Only select 'result' column to avoid querying missing columns
