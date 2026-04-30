@@ -245,7 +245,6 @@
     font-size: 0.9rem;
   }
 
-  /* Auto-refresh indicator */
   .refresh-info {
     font-size: 0.78rem;
     color: #9ca3af;
@@ -257,7 +256,6 @@
 
 <body>
 
-<!-- Auth check: runs before anything renders -->
 <script>
   if (localStorage.getItem("isAdmin") !== "true") {
     window.location.href = "/";
@@ -266,20 +264,15 @@
 
 <div class="admin-container">
 
-  <!-- SIDEBAR -->
   <aside class="admin-sidebar">
     <h2>🛡️ Admin Panel</h2>
-
     <button id="btn-dashboard" onclick="showTab('dashboard')" class="active">📊 Dashboard</button>
     <button id="btn-users"     onclick="showTab('users')">👤 Users</button>
     <button id="btn-analytics" onclick="showTab('analytics')">📈 Analytics</button>
-
     <div class="sidebar-spacer"></div>
-
     <button class="logout-btn" onclick="logout()">🚪 Logout</button>
   </aside>
 
-  <!-- CONTENT -->
   <main class="admin-content">
 
     <!-- DASHBOARD TAB -->
@@ -288,7 +281,6 @@
         <h1>Dashboard Overview</h1>
         <p>Real-time system statistics</p>
       </div>
-
       <div class="stats">
         <div class="stat-box">
           <h3 id="totalUsers">—</h3>
@@ -307,7 +299,6 @@
           <p>Average Score</p>
         </div>
       </div>
-
       <div class="card">
         <h2>Welcome, Admin</h2>
         <p>Use the sidebar to manage users, view jobs, and check analytics.</p>
@@ -320,7 +311,6 @@
         <h1>Users</h1>
         <p>All registered users in the system</p>
       </div>
-
       <div class="card">
         <div style="display:flex; align-items:center; margin-bottom:4px;">
           <button class="btn-refresh" id="refreshBtn" onclick="loadUsers()">🔄 Refresh Users</button>
@@ -350,7 +340,6 @@
         <h1>Analytics</h1>
         <p>System performance and interview data</p>
       </div>
-
       <div class="stats">
         <div class="stat-box">
           <h3 id="anaTotal">—</h3>
@@ -369,7 +358,6 @@
           <p>Lowest Score</p>
         </div>
       </div>
-
       <div class="card">
         <h2>Reports</h2>
         <p>Detailed analytics and performance data from all interview sessions.</p>
@@ -381,6 +369,17 @@
 
 <script>
 const API = window.location.origin;
+
+// FIXED: Online = last_active exists AND within last 60 seconds
+// Never trust the is_online DB flag — it gets stuck
+const ONLINE_THRESHOLD_MS = 60 * 1000;
+
+function isUserOnline(user) {
+  if (!user.last_active) return false;
+  const lastActive = new Date(user.last_active + "Z"); // force UTC parse
+  const now = new Date();
+  return (now - lastActive) < ONLINE_THRESHOLD_MS;
+}
 
 // ==========================
 // TAB SWITCHING
@@ -410,8 +409,8 @@ async function loadDashboard() {
 
     if (resUsers.ok) {
       const users = await resUsers.json();
-      // FIXED: Trust backend is_online value directly
-      const onlineCount = users.filter(u => u.is_online === true).length;
+      // FIXED: calculate online from last_active timestamp, not DB flag
+      const onlineCount = users.filter(u => isUserOnline(u)).length;
       document.getElementById("totalUsers").innerText  = users.length;
       document.getElementById("onlineUsers").innerText = onlineCount;
     }
@@ -429,13 +428,11 @@ async function loadDashboard() {
 
 // ==========================
 // LOAD USERS TABLE
-// FIXED: Trust backend is_online, show more columns
 // ==========================
 async function loadUsers() {
   const tbody      = document.getElementById("usersTable");
   const refreshBtn = document.getElementById("refreshBtn");
 
-  // Loading state
   tbody.innerHTML = "<tr><td colspan='6' class='loading-state'>⏳ Loading users...</td></tr>";
   if (refreshBtn) refreshBtn.disabled = true;
 
@@ -454,12 +451,12 @@ async function loadUsers() {
       return;
     }
 
-    let html         = "";
-    let onlineCount  = 0;
+    let html        = "";
+    let onlineCount = 0;
 
     users.forEach(user => {
-      // FIXED: Directly trust the backend's is_online boolean
-      const isOnline = user.is_online === true;
+      // FIXED: use timestamp-based check, never the DB flag
+      const isOnline = isUserOnline(user);
       if (isOnline) onlineCount++;
 
       const statusBadge = isOnline
@@ -484,17 +481,14 @@ async function loadUsers() {
 
     tbody.innerHTML = html;
 
-    // Update dashboard counters too
     const totalEl  = document.getElementById("totalUsers");
     const onlineEl = document.getElementById("onlineUsers");
     if (totalEl)  totalEl.innerText  = users.length;
     if (onlineEl) onlineEl.innerText = onlineCount;
 
-    // Show last refreshed time
     const lastRefreshed = document.getElementById("lastRefreshed");
     if (lastRefreshed) {
-      const now = new Date();
-      lastRefreshed.innerText = `Last updated: ${now.toLocaleTimeString()}`;
+      lastRefreshed.innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
     }
 
   } catch (err) {
