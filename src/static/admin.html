@@ -206,20 +206,18 @@
     font-weight: 600;
     cursor: pointer;
     transition: background 0.2s;
-    margin-top: 4px;
+    margin-bottom: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 
-  .btn-refresh:hover {
-    background: #374151;
-  }
+  .btn-refresh:hover { background: #374151; }
+  .btn-refresh:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  .hidden {
-    display: none !important;
-  }
+  .hidden { display: none !important; }
 
-  .tab {
-    animation: fade 0.2s ease-in;
-  }
+  .tab { animation: fade 0.2s ease-in; }
 
   @keyframes fade {
     from { opacity: 0; transform: translateY(6px); }
@@ -232,16 +230,35 @@
     color: #9ca3af;
     font-size: 0.9rem;
   }
+
+  .error-state {
+    text-align: center;
+    padding: 40px;
+    color: #dc2626;
+    font-size: 0.9rem;
+  }
+
+  .loading-state {
+    text-align: center;
+    padding: 40px;
+    color: #6b7280;
+    font-size: 0.9rem;
+  }
+
+  /* Auto-refresh indicator */
+  .refresh-info {
+    font-size: 0.78rem;
+    color: #9ca3af;
+    margin-left: 10px;
+    font-style: italic;
+  }
 </style>
 </head>
 
 <body>
 
-<!-- FIX: Auth check runs immediately before anything renders -->
+<!-- Auth check: runs before anything renders -->
 <script>
-  // =============================================
-  // FIXED: Check "isAdmin" key (not "role")
-  // =============================================
   if (localStorage.getItem("isAdmin") !== "true") {
     window.location.href = "/";
   }
@@ -254,7 +271,7 @@
     <h2>🛡️ Admin Panel</h2>
 
     <button id="btn-dashboard" onclick="showTab('dashboard')" class="active">📊 Dashboard</button>
-    <button id="btn-users" onclick="showTab('users')">👤 Users</button>
+    <button id="btn-users"     onclick="showTab('users')">👤 Users</button>
     <button id="btn-analytics" onclick="showTab('analytics')">📈 Analytics</button>
 
     <div class="sidebar-spacer"></div>
@@ -305,24 +322,27 @@
       </div>
 
       <div class="card">
-        <button class="btn-refresh" onclick="loadUsers()">🔄 Refresh Users</button>
+        <div style="display:flex; align-items:center; margin-bottom:4px;">
+          <button class="btn-refresh" id="refreshBtn" onclick="loadUsers()">🔄 Refresh Users</button>
+          <span class="refresh-info" id="lastRefreshed"></span>
+        </div>
         <table>
           <thead>
             <tr>
               <th>ID</th>
               <th>Name</th>
               <th>Email</th>
+              <th>Interviews</th>
+              <th>Best Score</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody id="usersTable">
-            <tr><td colspan="4" class="empty-state">Click Refresh to load users</td></tr>
+            <tr><td colspan="6" class="empty-state">Click Refresh to load users</td></tr>
           </tbody>
         </table>
       </div>
     </section>
-
-   
 
     <!-- ANALYTICS TAB -->
     <section id="tab-analytics" class="tab hidden">
@@ -366,19 +386,15 @@ const API = window.location.origin;
 // TAB SWITCHING
 // ==========================
 function showTab(tabName) {
-  // Hide all tabs
   document.querySelectorAll(".tab").forEach(tab => tab.classList.add("hidden"));
-  // Remove active from all sidebar buttons
   document.querySelectorAll(".admin-sidebar button").forEach(btn => btn.classList.remove("active"));
 
-  // Show selected tab
   document.getElementById("tab-" + tabName).classList.remove("hidden");
-  // Set active button
   const activeBtn = document.getElementById("btn-" + tabName);
   if (activeBtn) activeBtn.classList.add("active");
 
-  // Auto-load data for certain tabs
   if (tabName === "dashboard") loadDashboard();
+  if (tabName === "users")     loadUsers();
   if (tabName === "analytics") loadAnalytics();
 }
 
@@ -387,34 +403,24 @@ function showTab(tabName) {
 // ==========================
 async function loadDashboard() {
   try {
-    // Load user count + online count
-    const resUsers = await fetch(API + "/admin/users");
+    const [resUsers, resAna] = await Promise.all([
+      fetch(API + "/admin/users"),
+      fetch(API + "/admin/analytics")
+    ]);
+
     if (resUsers.ok) {
       const users = await resUsers.json();
-      const now = new Date();
-      let onlineCount = 0;
-
-      users.forEach(user => {
-        let isOnline = false;
-        if (user.is_online !== undefined) {
-          isOnline = user.is_online;
-        } else if (user.last_active) {
-          const lastActive = new Date(user.last_active);
-          isOnline = (now - lastActive) / 1000 < 30;
-        }
-        if (isOnline) onlineCount++;
-      });
-
-      document.getElementById("totalUsers").innerText = users.length;
+      // FIXED: Trust backend is_online value directly
+      const onlineCount = users.filter(u => u.is_online === true).length;
+      document.getElementById("totalUsers").innerText  = users.length;
       document.getElementById("onlineUsers").innerText = onlineCount;
     }
 
-    // Load interview analytics
-    const resAna = await fetch(API + "/admin/analytics");
     if (resAna.ok) {
       const ana = await resAna.json();
       document.getElementById("totalInterviews").innerText = ana.total_interviews ?? "—";
-      document.getElementById("avgScore").innerText = ana.average_score ? ana.average_score + "%" : "—";
+      document.getElementById("avgScore").innerText = ana.average_score
+        ? ana.average_score + "%" : "—";
     }
   } catch (err) {
     console.error("Dashboard load error:", err);
@@ -423,51 +429,79 @@ async function loadDashboard() {
 
 // ==========================
 // LOAD USERS TABLE
+// FIXED: Trust backend is_online, show more columns
 // ==========================
 async function loadUsers() {
+  const tbody      = document.getElementById("usersTable");
+  const refreshBtn = document.getElementById("refreshBtn");
+
+  // Loading state
+  tbody.innerHTML = "<tr><td colspan='6' class='loading-state'>⏳ Loading users...</td></tr>";
+  if (refreshBtn) refreshBtn.disabled = true;
+
   try {
     const res = await fetch(API + "/admin/users");
-    if (!res.ok) throw new Error("Failed to fetch users");
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`HTTP ${res.status}: ${errText}`);
+    }
 
     const users = await res.json();
-    const now = new Date();
-    let onlineCount = 0;
-    let html = "";
+
+    if (!Array.isArray(users) || users.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='6' class='empty-state'>No users found</td></tr>";
+      return;
+    }
+
+    let html         = "";
+    let onlineCount  = 0;
 
     users.forEach(user => {
-      let isOnline = false;
-
-      if (user.is_online !== undefined) {
-        isOnline = user.is_online;
-      } else if (user.last_active) {
-        const lastActive = new Date(user.last_active);
-        isOnline = (now - lastActive) / 1000 < 30;
-      }
-
+      // FIXED: Directly trust the backend's is_online boolean
+      const isOnline = user.is_online === true;
       if (isOnline) onlineCount++;
+
+      const statusBadge = isOnline
+        ? "<span class='badge-online'>● ONLINE</span>"
+        : "<span class='badge-offline'>○ OFFLINE</span>";
+
+      const bestScore = user.best_score
+        ? `<strong>${user.best_score}%</strong>`
+        : "<span style='color:#9ca3af'>—</span>";
 
       html += `
         <tr>
           <td>${user.user_id}</td>
-          <td>${user.name}</td>
+          <td>${user.name || "Unknown"}</td>
           <td>${user.email}</td>
-          <td>${isOnline
-            ? "<span class='badge-online'>● ONLINE</span>"
-            : "<span class='badge-offline'>○ OFFLINE</span>"
-          }</td>
+          <td style="text-align:center">${user.interview_count ?? 0}</td>
+          <td style="text-align:center">${bestScore}</td>
+          <td>${statusBadge}</td>
         </tr>
       `;
     });
 
-    document.getElementById("usersTable").innerHTML = html || "<tr><td colspan='4' class='empty-state'>No users found</td></tr>";
+    tbody.innerHTML = html;
 
-    // Update dashboard counts too
-    document.getElementById("totalUsers").innerText = users.length;
-    document.getElementById("onlineUsers").innerText = onlineCount;
+    // Update dashboard counters too
+    const totalEl  = document.getElementById("totalUsers");
+    const onlineEl = document.getElementById("onlineUsers");
+    if (totalEl)  totalEl.innerText  = users.length;
+    if (onlineEl) onlineEl.innerText = onlineCount;
+
+    // Show last refreshed time
+    const lastRefreshed = document.getElementById("lastRefreshed");
+    if (lastRefreshed) {
+      const now = new Date();
+      lastRefreshed.innerText = `Last updated: ${now.toLocaleTimeString()}`;
+    }
 
   } catch (err) {
     console.error("Error loading users:", err);
-    document.getElementById("usersTable").innerHTML = "<tr><td colspan='4' class='empty-state'>Error loading users</td></tr>";
+    tbody.innerHTML = `<tr><td colspan='6' class='error-state'>❌ Error: ${err.message}<br><small>Check browser console (F12) for details.</small></td></tr>`;
+  } finally {
+    if (refreshBtn) refreshBtn.disabled = false;
   }
 }
 
@@ -477,20 +511,20 @@ async function loadUsers() {
 async function loadAnalytics() {
   try {
     const res = await fetch(API + "/admin/analytics");
-    if (!res.ok) throw new Error("Failed to fetch analytics");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
     const ana = await res.json();
     document.getElementById("anaTotal").innerText = ana.total_interviews ?? "0";
-    document.getElementById("anaAvg").innerText = ana.average_score ? ana.average_score + "%" : "0%";
-    document.getElementById("anaHigh").innerText = ana.highest_score ? ana.highest_score + "%" : "0%";
-    document.getElementById("anaLow").innerText = ana.lowest_score ? ana.lowest_score + "%" : "0%";
+    document.getElementById("anaAvg").innerText   = ana.average_score ? ana.average_score + "%" : "0%";
+    document.getElementById("anaHigh").innerText  = ana.highest_score ? ana.highest_score + "%" : "0%";
+    document.getElementById("anaLow").innerText   = ana.lowest_score  ? ana.lowest_score  + "%" : "0%";
   } catch (err) {
     console.error("Analytics load error:", err);
   }
 }
 
 // ==========================
-// LOGOUT — FIXED
+// LOGOUT
 // ==========================
 function logout() {
   localStorage.clear();
@@ -498,7 +532,7 @@ function logout() {
 }
 
 // ==========================
-// INIT: Load dashboard on start
+// INIT
 // ==========================
 showTab('dashboard');
 </script>
