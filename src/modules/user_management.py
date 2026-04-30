@@ -41,8 +41,13 @@ def get_user_by_id(db: Session, user_id: int):
     return db.query(User).filter(User.user_id == user_id).first()
 
 
+# ✅ ADD THIS (VERY IMPORTANT)
+def get_all_users(db: Session):
+    return db.query(User).all()
+
+
 # =========================
-# ONLINE STATUS (IMPORTANT FIX)
+# ONLINE STATUS
 # =========================
 def set_user_online(db: Session, user_id: int, status: bool):
     user = get_user_by_id(db, user_id)
