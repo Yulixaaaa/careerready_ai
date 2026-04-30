@@ -56,11 +56,17 @@ def run_migration(db: Session = Depends(get_db)):
     """
     results = {}
     migrations = [
-        ("interviews.answers",      "ALTER TABLE interviews ADD COLUMN IF NOT EXISTS answers TEXT"),
-        ("interviews.status",       "ALTER TABLE interviews ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'completed'"),
-        ("interviews.created_at",   "ALTER TABLE interviews ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT now()"),
-        ("users.is_online",         "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE"),
-        ("users.last_active",       "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMP"),
+        ("interviews.answers",           "ALTER TABLE interviews ADD COLUMN IF NOT EXISTS answers TEXT"),
+        ("interviews.status",            "ALTER TABLE interviews ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'completed'"),
+        ("interviews.created_at",        "ALTER TABLE interviews ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT now()"),
+        ("users.is_online",              "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE"),
+        ("users.last_active",            "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMP"),
+        ("predictions.feedback",         "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS feedback TEXT"),
+        ("predictions.communication",    "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS communication FLOAT DEFAULT 0"),
+        ("predictions.technical",        "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS technical FLOAT DEFAULT 0"),
+        ("predictions.problem_solving",  "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS problem_solving FLOAT DEFAULT 0"),
+        ("predictions.confidence",       "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS confidence FLOAT DEFAULT 0"),
+        ("predictions.created_at",       "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT now()"),
     ]
     for label, sql in migrations:
         try:
