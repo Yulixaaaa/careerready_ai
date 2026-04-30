@@ -76,39 +76,54 @@ def admin_login(email: str = Form(...), password: str = Form(...)):
 # ─── Admin: Users (Updated Logic) ─────────────────────────────────────────────
 @app.get("/admin/users")
 def admin_users(db: Session = Depends(get_db)):
-    users = db.query(User).all()
-    now = datetime.utcnow()
-    result = []
-    
-    for u in users:
-        # Mas taas-taas nga timeout (2 minutes) para dili kaayo sensitive sa lag
-        if u.last_active:
-            secs = (now - u.last_active).total_seconds()
-            # Online kung nag-ping sa sulod sa 2 minutes
-            is_online = secs < 120 
-        else:
-            is_online = u.is_online or False
+    try:
+        users = db.query(User).all()
+        now = datetime.utcnow()
+        result = []
+        
+        for u in users:
+            # Safe calculation for online status
+            is_online = False
+            if u.last_active:
+                secs = (now - u.last_active).total_seconds()
+                is_online = secs < 60  # Gi-adjust sa 60 seconds para dili sensitive
+            else:
+                is_online = u.is_online if u.is_online is not None else False
 
-        interview_count = db.query(Interview).filter(
-            Interview.user_id == u.user_id,
-            Interview.status == "completed"
-        ).count()
+            # Safe interview count
+            interview_count = db.query(Interview).filter(
+                Interview.user_id == u.user_id,
+                Interview.status == "completed"
+            ).count()
 
-        best_pred = (db.query(Prediction)
-                       .filter(Prediction.user_id == u.user_id)
-                       .order_by(Prediction.result.desc())
-                       .first())
+            # SAFE BEST SCORE: Kini ang kasagaran hinungdan sa error
+            best_pred = (db.query(Prediction)
+                           .filter(Prediction.user_id == u.user_id)
+                           .order_by(Prediction.result.desc())
+                           .first())
+            
+            # Siguroon nga dili mag-error kung walay score (None)
+            final_score = 0
+            if best_pred and best_pred.result is not None:
+                try:
+                    final_score = round(float(best_pred.result), 2)
+                except:
+                    final_score = 0
 
-        result.append({
-            "user_id": u.user_id,
-            "name": u.name,
-            "email": u.email,
-            "is_online": is_online,
-            "last_active": u.last_active.isoformat() if u.last_active else None,
-            "interview_count": interview_count,
-            "best_score": round(best_pred.result, 2) if best_pred and best_pred.result else None,
-        })
-    return result
+            result.append({
+                "user_id": u.user_id,
+                "name": u.name if u.name else "Unknown",
+                "email": u.email,
+                "is_online": is_online,
+                "last_active": u.last_active.isoformat() if u.last_active else None,
+                "interview_count": interview_count,
+                "best_score": final_score,
+            })
+        return result
+    except Exception as e:
+        # Kini makatabang nimo pag-debug sa Render logs
+        print(f"Error in admin_users: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/admin/users/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db)):
