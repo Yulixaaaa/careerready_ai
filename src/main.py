@@ -73,17 +73,19 @@ def admin_login(email: str = Form(...), password: str = Form(...)):
         return {"status": "success"}
     raise HTTPException(401, "Invalid admin credentials")
 
-# ─── Admin: Users ─────────────────────────────────────────────────────────────
+# ─── Admin: Users (Updated Logic) ─────────────────────────────────────────────
 @app.get("/admin/users")
 def admin_users(db: Session = Depends(get_db)):
     users = db.query(User).all()
-    now   = datetime.utcnow()
+    now = datetime.utcnow()
     result = []
+    
     for u in users:
-        # online = pinged in last 35 seconds
+        # Mas taas-taas nga timeout (2 minutes) para dili kaayo sensitive sa lag
         if u.last_active:
             secs = (now - u.last_active).total_seconds()
-            is_online = secs < 35
+            # Online kung nag-ping sa sulod sa 2 minutes
+            is_online = secs < 120 
         else:
             is_online = u.is_online or False
 
@@ -98,13 +100,13 @@ def admin_users(db: Session = Depends(get_db)):
                        .first())
 
         result.append({
-            "user_id":         u.user_id,
-            "name":            u.name,
-            "email":           u.email,
-            "is_online":       is_online,
-            "last_active":     u.last_active.isoformat() if u.last_active else None,
+            "user_id": u.user_id,
+            "name": u.name,
+            "email": u.email,
+            "is_online": is_online,
+            "last_active": u.last_active.isoformat() if u.last_active else None,
             "interview_count": interview_count,
-            "best_score":      round(best_pred.result, 2) if best_pred and best_pred.result else None,
+            "best_score": round(best_pred.result, 2) if best_pred and best_pred.result else None,
         })
     return result
 

@@ -1306,6 +1306,7 @@ let interview_id = null;
 let questions = [];
 let answers = {};
 let interviewCount = 0;
+let heartbeatInterval = null; // Para ma-stop ang heartbeat kung mag-logout
 
 // ==========================
 // SINGLE window.onload
@@ -1405,7 +1406,7 @@ async function login() {
       localStorage.setItem("user_id", user_id);
       localStorage.setItem("user_name", user_name);
       localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("isAdmin", "false"); // ← make sure isAdmin is false for regular users
+      localStorage.setItem("isAdmin", "false"); 
       enterApp();
     } else {
       alert(data.detail || "Login failed");
@@ -1416,7 +1417,7 @@ async function login() {
 }
 
 // ==========================
-// ADMIN LOGIN — FIXED
+// ADMIN LOGIN
 // ==========================
 async function adminLogin() {
   const user = document.getElementById("admin_user").value;
@@ -1439,14 +1440,10 @@ async function adminLogin() {
     });
 
     if (res.ok) {
-      // FIX: Set "isAdmin" = "true" (NOT "role" = "admin")
-      // and ensure isLoggedIn is NOT true so admin page doesn't trigger user auto-login
       localStorage.setItem("isAdmin", "true");
       localStorage.setItem("isLoggedIn", "false");
-      // Clear any leftover user session
       localStorage.removeItem("user_id");
       localStorage.removeItem("user_name");
-
       window.location.href = API + "/admin";
     } else {
       const data = await res.json();
@@ -1468,26 +1465,59 @@ function enterApp() {
   document.getElementById("welcomeName").innerText = user_name;
   document.getElementById("userInitial").innerText = user_name.charAt(0).toUpperCase();
   showSection('dashboard');
+  
+  // SUGOD SA HEARTBEAT
   startHeartbeat();
 }
 
-function logout() {
-  // Mark user offline before clearing
+async function logout() {
   const uid = localStorage.getItem("user_id");
   if (uid) {
-    fetch(`${API}/user/ping?user_id=${uid}`).catch(() => {});
+    // I-SET ANG USER SA OFFLINE SA DATABASE BAG-O MAG CLEAR
+    try {
+      await fetch(`${API}/user/offline?user_id=${uid}`);
+    } catch (err) {
+      console.log("Offline request failed", err);
+    }
   }
+  
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
   localStorage.clear();
   window.location.reload();
 }
 
+// FIX: KINI NGA FUNCTION MAOY MO-UPDATE SA ADMIN PANEL
 function startHeartbeat() {
-  setInterval(() => {
-    const sid = localStorage.getItem("user_id");
-    if (sid) { fetch(`${API}/user/ping?user_id=${sid}`).catch(() => {}); }
-  }, 20000);
+  if (heartbeatInterval) clearInterval(heartbeatInterval);
+  
+  const sid = localStorage.getItem("user_id");
+  if (!sid) return;
+
+  // Una nga ping inig login
+  fetch(`${API}/user/ping?user_id=${sid}`).catch(() => {});
+
+  // Balik-balik matag 25 segundos (kay 35s ang timeout sa backend)
+  heartbeatInterval = setInterval(() => {
+    const currentId = localStorage.getItem("user_id");
+    if (currentId) { 
+      fetch(`${API}/user/ping?user_id=${currentId}`)
+        .then(r => console.log("Heartbeat sent"))
+        .catch(err => console.log("Heartbeat failed", err)); 
+    }
+  }, 25000);
 }
 
+// I-OFFLINE KUNG I-CLOSE ANG BROWSER TAB
+window.addEventListener("beforeunload", function (e) {
+  const uid = localStorage.getItem("user_id");
+  if (uid) {
+    navigator.sendBeacon(`${API}/user/offline?user_id=${uid}`);
+  }
+});
+
+// ==========================
+// INTERVIEW LOGIC (STAY THE SAME)
+// ==========================
 function setJob(title) {
   document.getElementById("job_title").value = title;
 }
@@ -1563,7 +1593,6 @@ function displayResults(data) {
   document.getElementById("resultScore").innerText = score + "%";
   document.getElementById("resultFeedback").innerText = data.feedback || "Good job!";
 
-  // Score classification
   let cls = "poor", verdict = "Needs Improvement";
   if (score >= 80) { cls = "excellent"; verdict = "Excellent! High Chance of Success 🎉"; }
   else if (score >= 65) { cls = "good"; verdict = "Good Chance of Success 👍"; }
@@ -1585,18 +1614,17 @@ function displayResults(data) {
 }
 
 function showSection(id) {
-  ["dashboard", "choosejob", "interview", "results"].forEach(s => {
+  const sections = ["dashboard", "choosejob", "interview", "results"];
+  sections.forEach(s => {
     document.getElementById("section-" + s).classList.add("hidden");
   });
   document.getElementById("section-" + id).classList.remove("hidden");
 
-  // Update active nav
-  ["dashboard", "choosejob", "interview", "results"].forEach(s => {
-    const navMap = { dashboard: "nav-dashboard", choosejob: "nav-choosejob", interview: "nav-interview", results: "nav-results" };
-    document.getElementById(navMap[s])?.classList.remove("active");
+  sections.forEach(s => {
+    const navId = "nav-" + s;
+    document.getElementById(navId)?.classList.remove("active");
   });
-  const activeMap = { dashboard: "nav-dashboard", choosejob: "nav-choosejob", interview: "nav-interview", results: "nav-results" };
-  document.getElementById(activeMap[id])?.classList.add("active");
+  document.getElementById("nav-" + id)?.classList.add("active");
 }
 </script>
 </body>
