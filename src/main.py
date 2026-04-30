@@ -116,12 +116,12 @@ def admin_users(db: Session = Depends(get_db)):
         result = []
 
         for u in users:
+            # Only online if last_active exists AND within threshold
+            # NULL last_active = never pinged = always offline
             is_online = False
-            if u.last_active:
+            if u.last_active is not None:
                 secs = (now - u.last_active).total_seconds()
                 is_online = secs < ONLINE_THRESHOLD_SECONDS
-            else:
-                is_online = bool(u.is_online) if u.is_online is not None else False
 
             interview_count = db.query(Interview).filter(
                 Interview.user_id == u.user_id,
@@ -258,14 +258,16 @@ def delete_question(question_id: int, db: Session = Depends(get_db)):
 # ─── Admin: Analytics ────────────────────────────────────────────────────────
 @app.get("/admin/analytics")
 def get_analytics(db: Session = Depends(get_db)):
-    predictions  = db.query(Prediction).all()
-    scores       = [round(float(p.result), 2) for p in predictions if p.result is not None]
+    # Only query result column to avoid missing column errors
+    prediction_rows = db.query(Prediction.result).all()
+    scores = [round(float(r.result), 2) for r in prediction_rows if r.result is not None]
     total_users  = db.query(User).count()
     now          = datetime.utcnow()
 
     online_users = sum(
         1 for u in db.query(User).all()
-        if u.last_active and (now - u.last_active).total_seconds() < ONLINE_THRESHOLD_SECONDS
+        if u.last_active
+        and (now - u.last_active).total_seconds() < ONLINE_THRESHOLD_SECONDS
     )
 
     return {
