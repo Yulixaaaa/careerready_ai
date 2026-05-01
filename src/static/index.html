@@ -270,7 +270,7 @@ footer p{font-size:.82rem;color:var(--text3)}
 <div id="landingPage">
   <nav class="landing-nav">
     <div class="brand" onclick="scrollTo(0,0)">
-      <div class="brand-icon"><img src="/static/images/logo.png" alt="Logo" onerror="this.parentElement.textContent='🎯'"></div>
+      <div class="brand-icon"><img src="/static/logo.png" alt="Logo" onerror="this.parentElement.textContent='🎯'"></div>
       CareerReady AI
     </div>
     <ul class="nav-links">
@@ -343,7 +343,7 @@ footer p{font-size:.82rem;color:var(--text3)}
   </div>
 
   <footer>
-    <div class="brand"><div class="brand-icon" style="width:28px;height:28px"><img src="/static/images/logo.png" alt="" onerror="this.parentElement.textContent='🎯'"></div>CareerReady AI</div>
+    <div class="brand"><div class="brand-icon" style="width:28px;height:28px"><img src="/static/logo.png" alt="" onerror="this.parentElement.textContent='🎯'"></div>CareerReady AI</div>
     <p>© 2025 CareerReady AI. All rights reserved.</p>
     <p>Built for job seekers, powered by AI.</p>
   </footer>
@@ -388,7 +388,7 @@ footer p{font-size:.82rem;color:var(--text3)}
 <div id="appLayout" class="hidden">
   <aside class="sidebar">
     <div class="sidebar-brand">
-      <div class="sidebar-brand-icon"><img src="/static/images/logo.png" alt="" onerror="this.parentElement.textContent='🎯'"></div>
+      <div class="sidebar-brand-icon"><img src="/static/logo.png" alt="" onerror="this.parentElement.textContent='🎯'"></div>
       CareerReady AI
     </div>
     <button class="nav-item active" id="nav-dashboard" onclick="showSection('dashboard')"><span class="nav-icon">🏠</span>Dashboard</button>
@@ -561,7 +561,10 @@ async function register() {
   const name     = document.getElementById("reg_name").value.trim();
   const email    = document.getElementById("reg_email").value.trim();
   const password = document.getElementById("reg_password").value;
-  if (!name || !email || !password) { alert("Please fill in all fields"); return; }
+  const confirm  = document.getElementById("reg_password_confirm").value;
+  if (!name || !email || !password || !confirm) { alert("Please fill in all fields"); return; }
+  if (password !== confirm) { alert("❌ Passwords do not match! Please try again."); document.getElementById("reg_password_confirm").value = ""; return; }
+  if (password.length < 6) { alert("Password must be at least 6 characters."); return; }
   try {
     const res  = await fetch(API + "/users/register", {
       method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },

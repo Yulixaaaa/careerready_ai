@@ -80,32 +80,45 @@ def admin_users(db: Session = Depends(get_db)):
     now   = datetime.utcnow()
     result = []
     for u in users:
-        # online = pinged in last 35 seconds
-        if u.last_active:
-            secs = (now - u.last_active).total_seconds()
-            is_online = secs < 35
-        else:
-            is_online = u.is_online or False
+        try:
+            # Online = pinged within last 35 seconds
+            last_active = getattr(u, "last_active", None)
+            if last_active:
+                secs = (now - last_active).total_seconds()
+                is_online = secs < 35
+            else:
+                is_online = getattr(u, "is_online", False) or False
 
-        interview_count = db.query(Interview).filter(
-            Interview.user_id == u.user_id,
-            Interview.status == "completed"
-        ).count()
+            # Count ALL interviews (not just completed) so new users still show
+            interview_count = db.query(Interview).filter(
+                Interview.user_id == u.user_id
+            ).count()
 
-        best_pred = (db.query(Prediction)
-                       .filter(Prediction.user_id == u.user_id)
-                       .order_by(Prediction.result.desc())
-                       .first())
+            best_pred = (db.query(Prediction)
+                           .filter(Prediction.user_id == u.user_id)
+                           .order_by(Prediction.result.desc())
+                           .first())
 
-        result.append({
-            "user_id":         u.user_id,
-            "name":            u.name,
-            "email":           u.email,
-            "is_online":       is_online,
-            "last_active":     u.last_active.isoformat() if u.last_active else None,
-            "interview_count": interview_count,
-            "best_score":      round(best_pred.result, 2) if best_pred and best_pred.result else None,
-        })
+            result.append({
+                "user_id":         u.user_id,
+                "name":            u.name,
+                "email":           u.email,
+                "is_online":       is_online,
+                "last_active":     last_active.isoformat() if last_active else None,
+                "interview_count": interview_count,
+                "best_score":      round(float(best_pred.result), 2) if best_pred and best_pred.result else None,
+            })
+        except Exception as e:
+            # Never let one bad user record crash the whole list
+            result.append({
+                "user_id":         u.user_id,
+                "name":            u.name or "Unknown",
+                "email":           u.email or "",
+                "is_online":       False,
+                "last_active":     None,
+                "interview_count": 0,
+                "best_score":      None,
+            })
     return result
 
 @app.delete("/admin/users/{user_id}")
@@ -211,7 +224,7 @@ def get_analytics(db: Session = Depends(get_db)):
     now           = datetime.utcnow()
     online_users  = sum(
         1 for u in db.query(User).all()
-        if u.last_active and (now - u.last_active).total_seconds() < 35
+        if getattr(u, "last_active", None) and (now - u.last_active).total_seconds() < 35
     )
     return {
         "total_interviews": len(scores),
@@ -373,7 +386,7 @@ def fix_old_records():
 
         # Add last_active to users if missing
         try:
-            db.execute(text("ALTER TABLE users ADD COLUMN last_active DATETIME"))
+            db.execute(text("ALTER TABLE users ADD COLUMN last_active TIMESTAMP"))
             db.commit()
         except Exception:
             pass
@@ -387,7 +400,7 @@ def fix_old_records():
 
         # Add status column to interviews if missing
         try:
-            db.execute(text("ALTER TABLE interviews ADD COLUMN status VARCHAR DEFAULT 'completed'"))
+            db.execute(text("ALTER TABLE interviews ADD COLUMN status VARCHAR(50) DEFAULT 'completed'"))
             db.commit()
         except Exception:
             pass
