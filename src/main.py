@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import func, text
+from sqlalchemy import func
 from datetime import datetime
 from typing import List, Optional
 import sys, os
@@ -35,9 +35,6 @@ STATIC_DIR  = os.path.join(CURRENT_DIR, "static")
 if os.path.exists(STATIC_DIR):
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-# ─── ONLINE THRESHOLD (seconds) ──────────────────────────────────────────────
-ONLINE_THRESHOLD_SECONDS = 60
-
 # ─── Pages ──────────────────────────────────────────────────────────────────
 @app.get("/")
 def home():
@@ -46,37 +43,6 @@ def home():
 @app.get("/admin")
 def admin_page():
     return FileResponse(os.path.join(STATIC_DIR, "admin.html"))
-
-# ─── Migration (run once, then remove) ───────────────────────────────────────
-@app.get("/admin/migrate")
-def run_migration(db: Session = Depends(get_db)):
-    """
-    Run this ONCE to add missing columns to the live database.
-    Visit /admin/migrate after deploying, then remove this endpoint.
-    """
-    results = {}
-    migrations = [
-        ("interviews.answers",           "ALTER TABLE interviews ADD COLUMN IF NOT EXISTS answers TEXT"),
-        ("interviews.status",            "ALTER TABLE interviews ADD COLUMN IF NOT EXISTS status VARCHAR DEFAULT 'completed'"),
-        ("interviews.created_at",        "ALTER TABLE interviews ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT now()"),
-        ("users.is_online",              "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE"),
-        ("users.last_active",            "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMP"),
-        ("predictions.feedback",         "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS feedback TEXT"),
-        ("predictions.communication",    "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS communication FLOAT DEFAULT 0"),
-        ("predictions.technical",        "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS technical FLOAT DEFAULT 0"),
-        ("predictions.problem_solving",  "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS problem_solving FLOAT DEFAULT 0"),
-        ("predictions.confidence",       "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS confidence FLOAT DEFAULT 0"),
-        ("predictions.created_at",       "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT now()"),
-    ]
-    for label, sql in migrations:
-        try:
-            db.execute(text(sql))
-            db.commit()
-            results[label] = "ok"
-        except Exception as e:
-            db.rollback()
-            results[label] = f"skipped: {str(e)[:60]}"
-    return {"status": "done", "results": results}
 
 # ─── Auth ────────────────────────────────────────────────────────────────────
 @app.post("/users/register")
@@ -93,7 +59,7 @@ def login_user(email: str = Form(...), password: str = Form(...),
     user = user_management.get_user_by_email(db, email)
     if not user or not user_management.verify_password(password, user.password):
         raise HTTPException(401, "Invalid credentials")
-    user.is_online   = True
+    user.is_online  = True
     user.last_active = datetime.utcnow()
     db.commit()
     return {"user_id": user.user_id, "name": user.name}
@@ -110,52 +76,37 @@ def admin_login(email: str = Form(...), password: str = Form(...)):
 # ─── Admin: Users ─────────────────────────────────────────────────────────────
 @app.get("/admin/users")
 def admin_users(db: Session = Depends(get_db)):
-    try:
-        users = db.query(User).all()
-        now = datetime.utcnow()
-        result = []
+    users = db.query(User).all()
+    now   = datetime.utcnow()
+    result = []
+    for u in users:
+        # online = pinged in last 35 seconds
+        if u.last_active:
+            secs = (now - u.last_active).total_seconds()
+            is_online = secs < 35
+        else:
+            is_online = u.is_online or False
 
-        for u in users:
-            # Only online if last_active exists AND within threshold
-            # NULL last_active = never pinged = always offline
-            is_online = False
-            if u.last_active is not None:
-                secs = (now - u.last_active).total_seconds()
-                is_online = secs < ONLINE_THRESHOLD_SECONDS
+        interview_count = db.query(Interview).filter(
+            Interview.user_id == u.user_id,
+            Interview.status == "completed"
+        ).count()
 
-            interview_count = db.query(Interview).filter(
-                Interview.user_id == u.user_id,
-                Interview.status == "completed"
-            ).count()
+        best_pred = (db.query(Prediction)
+                       .filter(Prediction.user_id == u.user_id)
+                       .order_by(Prediction.result.desc())
+                       .first())
 
-            # Only select 'result' column to avoid querying missing columns
-            best_score_row = (db.query(Prediction.result)
-                                .filter(Prediction.user_id == u.user_id)
-                                .order_by(Prediction.result.desc())
-                                .first())
-
-            final_score = 0
-            if best_score_row and best_score_row.result is not None:
-                try:
-                    final_score = round(float(best_score_row.result), 2)
-                except:
-                    final_score = 0
-
-            result.append({
-                "user_id":         u.user_id,
-                "name":            u.name if u.name else "Unknown",
-                "email":           u.email,
-                "is_online":       is_online,
-                "last_active":     u.last_active.isoformat() if u.last_active else None,
-                "interview_count": interview_count,
-                "best_score":      final_score,
-            })
-
-        return result
-
-    except Exception as e:
-        print(f"[ERROR] admin_users: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        result.append({
+            "user_id":         u.user_id,
+            "name":            u.name,
+            "email":           u.email,
+            "is_online":       is_online,
+            "last_active":     u.last_active.isoformat() if u.last_active else None,
+            "interview_count": interview_count,
+            "best_score":      round(best_pred.result, 2) if best_pred and best_pred.result else None,
+        })
+    return result
 
 @app.delete("/admin/users/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db)):
@@ -172,10 +123,10 @@ def get_admin_jobs(db: Session = Depends(get_db)):
     jobs = db.query(AdminJob).all()
     return [
         {
-            "admin_job_id":   j.admin_job_id,
-            "job_title":      j.job_title,
-            "description":    j.description,
-            "created_at":     j.created_at.isoformat() if j.created_at else None,
+            "admin_job_id": j.admin_job_id,
+            "job_title":    j.job_title,
+            "description":  j.description,
+            "created_at":   j.created_at.isoformat() if j.created_at else None,
             "question_count": len(j.questions),
             "questions": [
                 {"question_id": q.question_id, "question_text": q.question_text}
@@ -187,10 +138,10 @@ def get_admin_jobs(db: Session = Depends(get_db)):
 
 @app.post("/admin/jobs")
 async def create_admin_job(request: Request, db: Session = Depends(get_db)):
-    body        = await request.json()
+    body = await request.json()
     job_title   = body.get("job_title", "").strip()
     description = body.get("description", "").strip()
-    questions   = body.get("questions", [])
+    questions   = body.get("questions", [])   # list of strings
 
     if not job_title:
         raise HTTPException(400, "job_title is required")
@@ -213,17 +164,13 @@ async def create_admin_job(request: Request, db: Session = Depends(get_db)):
 
     db.commit()
     db.refresh(admin_job)
-    return {
-        "status":         "created",
-        "admin_job_id":   admin_job.admin_job_id,
-        "job_title":      admin_job.job_title,
-        "question_count": len(admin_job.questions)
-    }
+    return {"status": "created", "admin_job_id": admin_job.admin_job_id,
+            "job_title": admin_job.job_title, "question_count": len(admin_job.questions)}
 
 @app.post("/admin/jobs/{admin_job_id}/questions")
 async def add_question_to_job(admin_job_id: int, request: Request,
                                db: Session = Depends(get_db)):
-    body   = await request.json()
+    body = await request.json()
     q_text = body.get("question_text", "").strip()
     if not q_text:
         raise HTTPException(400, "question_text is required")
@@ -258,18 +205,14 @@ def delete_question(question_id: int, db: Session = Depends(get_db)):
 # ─── Admin: Analytics ────────────────────────────────────────────────────────
 @app.get("/admin/analytics")
 def get_analytics(db: Session = Depends(get_db)):
-    # Only query result column to avoid missing column errors
-    prediction_rows = db.query(Prediction.result).all()
-    scores = [round(float(r.result), 2) for r in prediction_rows if r.result is not None]
-    total_users  = db.query(User).count()
-    now          = datetime.utcnow()
-
-    online_users = sum(
+    predictions = db.query(Prediction).all()
+    scores = [round(float(p.result), 2) for p in predictions if p.result is not None]
+    total_users   = db.query(User).count()
+    now           = datetime.utcnow()
+    online_users  = sum(
         1 for u in db.query(User).all()
-        if u.last_active
-        and (now - u.last_active).total_seconds() < ONLINE_THRESHOLD_SECONDS
+        if u.last_active and (now - u.last_active).total_seconds() < 35
     )
-
     return {
         "total_interviews": len(scores),
         "average_score":    round(sum(scores) / len(scores), 2) if scores else 0,
@@ -281,9 +224,11 @@ def get_analytics(db: Session = Depends(get_db)):
 
 @app.get("/admin/analytics/monthly")
 def get_monthly_analytics(db: Session = Depends(get_db)):
+    """Returns per-month user signups and interview counts for the last 12 months."""
     from sqlalchemy import extract
     current_year = datetime.utcnow().year
 
+    # Interviews per month
     interview_rows = (db.query(
             extract('month', Interview.created_at).label('month'),
             func.count(Interview.interview_id).label('count'),
@@ -295,6 +240,7 @@ def get_monthly_analytics(db: Session = Depends(get_db)):
         .all()
     )
 
+    # Users registered per month
     user_rows = (db.query(
             extract('month', User.last_active).label('month'),
             func.count(User.user_id).label('count')
@@ -304,31 +250,30 @@ def get_monthly_analytics(db: Session = Depends(get_db)):
         .all()
     )
 
-    month_names   = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
-    interview_map = {int(r.month): {"count": r.count, "avg_score": round(float(r.avg_score), 2) if r.avg_score else 0} for r in interview_rows}
-    user_map      = {int(r.month): r.count for r in user_rows}
+    month_names = ["Jan","Feb","Mar","Apr","May","Jun",
+                   "Jul","Aug","Sep","Oct","Nov","Dec"]
 
-    return [
-        {
-            "month":      month_names[m - 1],
-            "interviews": interview_map.get(m, {}).get("count", 0),
-            "avg_score":  interview_map.get(m, {}).get("avg_score", 0),
-            "new_users":  user_map.get(m, 0),
-        }
-        for m in range(1, 13)
-    ]
+    interview_map  = {int(r.month): {"count": r.count, "avg_score": round(float(r.avg_score), 2) if r.avg_score else 0} for r in interview_rows}
+    user_map       = {int(r.month): r.count for r in user_rows}
+
+    data = []
+    for m in range(1, 13):
+        data.append({
+            "month":        month_names[m - 1],
+            "interviews":   interview_map.get(m, {}).get("count", 0),
+            "avg_score":    interview_map.get(m, {}).get("avg_score", 0),
+            "new_users":    user_map.get(m, 0),
+        })
+    return data
 
 # ─── Jobs (user-facing) ───────────────────────────────────────────────────────
 @app.get("/jobs/available")
 def get_available_jobs(db: Session = Depends(get_db)):
+    """Returns all admin-created jobs for users to pick from."""
     jobs = db.query(AdminJob).all()
     return [
-        {
-            "admin_job_id":   j.admin_job_id,
-            "job_title":      j.job_title,
-            "description":    j.description,
-            "question_count": len(j.questions)
-        }
+        {"admin_job_id": j.admin_job_id, "job_title": j.job_title,
+         "description": j.description, "question_count": len(j.questions)}
         for j in jobs
     ]
 
@@ -399,3 +344,63 @@ def user_offline(user_id: int, db: Session = Depends(get_db)):
         user.last_active = datetime.utcnow()
         db.commit()
     return {"status": "ok"}
+
+# ─── Startup: fix old records ─────────────────────────────────────────────────
+@app.on_event("startup")
+def fix_old_records():
+    """
+    Migration: fix old interviews that have NULL or 'ongoing' status
+    but already have a prediction (meaning they were completed).
+    Also adds missing columns via alter table if needed.
+    """
+    from sqlalchemy import text
+    db = next(get_db())
+    try:
+        # Add missing columns to predictions table if they don't exist
+        for col, coltype in [
+            ("feedback",        "TEXT"),
+            ("communication",   "FLOAT DEFAULT 0"),
+            ("technical",       "FLOAT DEFAULT 0"),
+            ("problem_solving", "FLOAT DEFAULT 0"),
+            ("confidence",      "FLOAT DEFAULT 0"),
+            ("created_at",      "DATETIME"),
+        ]:
+            try:
+                db.execute(text(f"ALTER TABLE predictions ADD COLUMN {col} {coltype}"))
+                db.commit()
+            except Exception:
+                pass  # column already exists
+
+        # Add last_active to users if missing
+        try:
+            db.execute(text("ALTER TABLE users ADD COLUMN last_active DATETIME"))
+            db.commit()
+        except Exception:
+            pass
+
+        # Add answers column to interviews if missing
+        try:
+            db.execute(text("ALTER TABLE interviews ADD COLUMN answers TEXT"))
+            db.commit()
+        except Exception:
+            pass
+
+        # Add status column to interviews if missing
+        try:
+            db.execute(text("ALTER TABLE interviews ADD COLUMN status VARCHAR DEFAULT 'completed'"))
+            db.commit()
+        except Exception:
+            pass
+
+        # Fix interviews that have a prediction but wrong status
+        interviews = db.query(Interview).all()
+        for iv in interviews:
+            pred = iv.predictions
+            if pred and (iv.status is None or iv.status == "ongoing"):
+                iv.status = "completed"
+        db.commit()
+        print("✅ Startup migration complete")
+    except Exception as e:
+        print(f"Startup migration warning: {e}")
+    finally:
+        db.close()

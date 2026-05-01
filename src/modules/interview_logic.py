@@ -134,8 +134,9 @@ def submit_and_analyze_answers(db: Session, interview_id: int, user_answers: Dic
 
 
 def get_user_history(db: Session, user_id: int):
+    # Include ALL interviews regardless of status so old records still show up
     interviews = (db.query(Interview)
-                    .filter(Interview.user_id == user_id, Interview.status == "completed")
+                    .filter(Interview.user_id == user_id)
                     .order_by(Interview.created_at.desc()).all())
     history = []
     for iv in interviews:
@@ -150,16 +151,22 @@ def get_user_history(db: Session, user_id: int):
         except Exception:
             questions_list = []
 
+        def _s(val):
+            try:
+                return round(float(val), 2) if val is not None else 0
+            except Exception:
+                return 0
+
         history.append({
             "interview_id":    iv.interview_id,
             "job_title":       job.job_title if job else "Unknown",
             "created_at":      iv.created_at.isoformat() if iv.created_at else None,
-            "score":           round(pred.result, 2)          if pred and pred.result else 0,
-            "feedback":        pred.feedback                  if pred else "",
-            "communication":   round(pred.communication, 2)   if pred else 0,
-            "technical":       round(pred.technical, 2)        if pred else 0,
-            "problem_solving": round(pred.problem_solving, 2)  if pred else 0,
-            "confidence":      round(pred.confidence, 2)       if pred else 0,
+            "score":           _s(pred.result)                               if pred else 0,
+            "feedback":        getattr(pred, "feedback", "") or ""           if pred else "",
+            "communication":   _s(getattr(pred, "communication", 0))        if pred else 0,
+            "technical":       _s(getattr(pred, "technical", 0))            if pred else 0,
+            "problem_solving": _s(getattr(pred, "problem_solving", 0))      if pred else 0,
+            "confidence":      _s(getattr(pred, "confidence", 0))           if pred else 0,
             "questions":       questions_list,
             "answers":         answers_dict,
         })

@@ -4,256 +4,113 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Dashboard — CareerReady AI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--bg2:#161b27;--bg3:#1e2535;--bg4:#252d40;
+  --gold:#D4A017;--gold-l:#F0BE3D;--gold-glow:rgba(212,160,23,.2);
+  --text:#f0f4ff;--text2:#a8b4cc;--text3:#6b7a99;
+  --border:rgba(255,255,255,.07);
+  --success:#2DD68C;--danger:#FF5E7D;--warn:#F59E0B;
+  --radius:12px;--tr:.2s ease;
+}
+body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
 
-  body {
-    font-family: 'Segoe UI', sans-serif;
-    background: #f4f6f9;
-  }
+/* ── Sidebar ── */
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0;flex-shrink:0}
+.sb-brand{padding:22px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;font-weight:800;font-size:1rem}
+.sb-brand-dot{width:32px;height:32px;background:linear-gradient(135deg,var(--gold),var(--gold-l));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.sb-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:2px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius);color:var(--text2);font-size:.88rem;font-weight:500;cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:var(--tr)}
+.sb-item:hover{background:var(--bg3);color:var(--text)}
+.sb-item.active{background:rgba(212,160,23,.15);color:var(--gold-l);font-weight:600}
+.sb-item .icon{font-size:16px;width:20px;text-align:center}
+.sb-footer{padding:14px 8px;border-top:1px solid var(--border)}
+.sb-logout{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius);color:var(--danger);font-size:.88rem;font-weight:600;cursor:pointer;border:none;background:rgba(255,94,125,.08);width:100%;text-align:left;transition:var(--tr)}
+.sb-logout:hover{background:rgba(255,94,125,.18)}
 
-  .admin-container {
-    display: flex;
-    height: 100vh;
-  }
+/* ── Main ── */
+.main{flex:1;overflow-y:auto;background:var(--bg)}
+.main-inner{padding:32px;max-width:1200px}
+.page-title{font-size:1.6rem;font-weight:800;margin-bottom:4px}
+.page-sub{color:var(--text2);font-size:.88rem;margin-bottom:28px}
 
-  .admin-sidebar {
-    width: 240px;
-    background: #1f2937;
-    color: white;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    flex-shrink: 0;
-  }
+/* ── Cards / Stats ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:var(--tr)}
+.stat-card:hover{border-color:rgba(212,160,23,.3);transform:translateY(-2px)}
+.stat-icon{font-size:22px;margin-bottom:8px}
+.stat-label{font-size:.78rem;color:var(--text2);margin-bottom:6px;font-weight:500}
+.stat-val{font-size:1.9rem;font-weight:800;color:var(--gold)}
+.stat-val.green{color:var(--success)}
+.stat-val.white{color:var(--text)}
 
-  .admin-sidebar h2 {
-    font-size: 1.2rem;
-    margin-bottom: 16px;
-    color: #f9fafb;
-    padding-bottom: 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-  }
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:20px}
+.card-title{font-size:1rem;font-weight:700;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
 
-  .admin-sidebar button {
-    background: none;
-    border: none;
-    color: #d1d5db;
-    padding: 11px 14px;
-    text-align: left;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    transition: background 0.2s, color 0.2s;
-    width: 100%;
-  }
+/* ── Charts row ── */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+.chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:22px}
+.chart-card h3{font-size:.95rem;font-weight:700;margin-bottom:16px;color:var(--text2)}
 
-  .admin-sidebar button:hover {
-    background: #374151;
-    color: #fff;
-  }
+/* ── Table ── */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{background:var(--bg3);padding:10px 14px;text-align:left;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border);font-size:.75rem;text-transform:uppercase;letter-spacing:.05em}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2)}
+tr:hover td{background:rgba(255,255,255,.02);color:var(--text)}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700}
+.badge-online{background:rgba(45,214,140,.15);color:var(--success)}
+.badge-offline{background:rgba(255,94,125,.12);color:var(--danger)}
 
-  .admin-sidebar button.active {
-    background: rgba(212, 160, 23, 0.2);
-    color: #F0BE3D;
-  }
+/* ── Buttons ── */
+.btn{padding:8px 18px;border-radius:8px;font-size:.84rem;font-weight:600;cursor:pointer;border:none;transition:var(--tr)}
+.btn-gold{background:var(--gold);color:#111}
+.btn-gold:hover{background:var(--gold-l)}
+.btn-danger{background:rgba(255,94,125,.15);color:var(--danger);border:1px solid rgba(255,94,125,.3)}
+.btn-danger:hover{background:rgba(255,94,125,.3)}
+.btn-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{color:var(--text)}
 
-  .sidebar-spacer { flex: 1; }
+/* ── Job Form ── */
+.form-grid{display:grid;gap:14px}
+.field label{display:block;font-size:.78rem;font-weight:600;color:var(--text2);margin-bottom:5px}
+.field input,.field textarea{width:100%;padding:10px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:.9rem;transition:var(--tr)}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-glow)}
+.field textarea{resize:vertical;min-height:80px}
+.q-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.q-item{display:flex;align-items:flex-start;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 14px}
+.q-item span{flex:1;font-size:.85rem;color:var(--text2);line-height:1.5}
+.q-remove{background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;flex-shrink:0;padding:0 2px;line-height:1}
+.q-input-row{display:flex;gap:8px;margin-top:8px}
+.q-input-row input{flex:1;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.85rem}
+.q-input-row input:focus{outline:none;border-color:var(--gold)}
 
-  .logout-btn {
-    background: rgba(255, 94, 125, 0.1) !important;
-    color: #FF5E7D !important;
-    border: 1px solid rgba(255, 94, 125, 0.2) !important;
-  }
+/* ── Jobs grid ── */
+.jobs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.job-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:18px;transition:var(--tr)}
+.job-card:hover{border-color:rgba(212,160,23,.3)}
+.job-card-title{font-weight:700;font-size:.95rem;margin-bottom:4px}
+.job-card-desc{font-size:.8rem;color:var(--text3);margin-bottom:10px}
+.job-card-meta{font-size:.75rem;color:var(--text3);margin-bottom:12px}
+.job-card-actions{display:flex;gap:8px}
+.job-expand{margin-top:12px;display:none}
+.job-expand.open{display:block}
 
-  .logout-btn:hover {
-    background: rgba(255, 94, 125, 0.25) !important;
-  }
+/* ── Hidden ── */
+.hidden{display:none!important}
+.tab{animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 
-  .admin-content {
-    flex: 1;
-    padding: 30px;
-    overflow-y: auto;
-  }
-
-  .page-header {
-    margin-bottom: 24px;
-  }
-
-  .page-header h1 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #111827;
-  }
-
-  .page-header p {
-    color: #6b7280;
-    font-size: 0.9rem;
-    margin-top: 4px;
-  }
-
-  .card {
-    background: white;
-    padding: 20px 24px;
-    border-radius: 12px;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-    margin-bottom: 20px;
-  }
-
-  .card h2 {
-    font-size: 1.05rem;
-    font-weight: 700;
-    margin-bottom: 4px;
-    color: #111827;
-  }
-
-  .card p {
-    color: #6b7280;
-    font-size: 0.88rem;
-  }
-
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-
-  .stat-box {
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-    transition: transform 0.2s, box-shadow 0.2s;
-    border-left: 4px solid #D4A017;
-  }
-
-  .stat-box:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-  }
-
-  .stat-box h3 {
-    font-size: 2rem;
-    font-weight: 800;
-    color: #111827;
-    margin-bottom: 4px;
-  }
-
-  .stat-box p {
-    color: #6b7280;
-    font-size: 0.85rem;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 16px;
-    font-size: 0.9rem;
-  }
-
-  th {
-    background: #f9fafb;
-    padding: 12px 14px;
-    text-align: left;
-    font-weight: 600;
-    color: #374151;
-    border-bottom: 2px solid #e5e7eb;
-    font-size: 0.82rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  td {
-    padding: 12px 14px;
-    border-bottom: 1px solid #f3f4f6;
-    color: #374151;
-  }
-
-  tr:hover td {
-    background: #fafafa;
-  }
-
-  .badge-online {
-    display: inline-block;
-    background: #d1fae5;
-    color: #065f46;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 700;
-  }
-
-  .badge-offline {
-    display: inline-block;
-    background: #fee2e2;
-    color: #991b1b;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 700;
-  }
-
-  .btn-refresh {
-    padding: 8px 18px;
-    background: #1f2937;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-    margin-bottom: 12px;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .btn-refresh:hover { background: #374151; }
-  .btn-refresh:disabled { opacity: 0.6; cursor: not-allowed; }
-
-  .hidden { display: none !important; }
-
-  .tab { animation: fade 0.2s ease-in; }
-
-  @keyframes fade {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 40px;
-    color: #9ca3af;
-    font-size: 0.9rem;
-  }
-
-  .error-state {
-    text-align: center;
-    padding: 40px;
-    color: #dc2626;
-    font-size: 0.9rem;
-  }
-
-  .loading-state {
-    text-align: center;
-    padding: 40px;
-    color: #6b7280;
-    font-size: 0.9rem;
-  }
-
-  .refresh-info {
-    font-size: 0.78rem;
-    color: #9ca3af;
-    margin-left: 10px;
-    font-style: italic;
-  }
+/* ── Modal ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:1000}
+.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:32px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto}
+.modal-box h3{font-size:1.2rem;font-weight:800;margin-bottom:4px}
+.modal-box p{color:var(--text2);font-size:.85rem;margin-bottom:20px}
+.modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
 </style>
 </head>
-
 <body>
 
 <script>
@@ -262,274 +119,601 @@
   }
 </script>
 
-<div class="admin-container">
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-brand-dot">🛡️</div>
+    Admin Panel
+  </div>
+  <nav class="sb-nav">
+    <button class="sb-item active" id="btn-dashboard" onclick="showTab('dashboard')">
+      <span class="icon">📊</span> Dashboard
+    </button>
+    <button class="sb-item" id="btn-users" onclick="showTab('users')">
+      <span class="icon">👤</span> Users
+    </button>
+    <button class="sb-item" id="btn-jobs" onclick="showTab('jobs')">
+      <span class="icon">💼</span> Jobs & Questions
+    </button>
+    <button class="sb-item" id="btn-analytics" onclick="showTab('analytics')">
+      <span class="icon">📈</span> Analytics
+    </button>
+  </nav>
+  <div class="sb-footer">
+    <button class="sb-logout" onclick="logout()">
+      <span class="icon">🚪</span> Logout
+    </button>
+  </div>
+</aside>
 
-  <aside class="admin-sidebar">
-    <h2>🛡️ Admin Panel</h2>
-    <button id="btn-dashboard" onclick="showTab('dashboard')" class="active">📊 Dashboard</button>
-    <button id="btn-users"     onclick="showTab('users')">👤 Users</button>
-    <button id="btn-analytics" onclick="showTab('analytics')">📈 Analytics</button>
-    <div class="sidebar-spacer"></div>
-    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
-  </aside>
+<!-- ═══ MAIN CONTENT ═══ -->
+<main class="main">
+<div class="main-inner">
 
-  <main class="admin-content">
+  <!-- ── DASHBOARD TAB ── -->
+  <section id="tab-dashboard" class="tab">
+    <div class="page-title">Dashboard</div>
+    <div class="page-sub">Live overview of the CareerReady AI platform</div>
 
-    <!-- DASHBOARD TAB -->
-    <section id="tab-dashboard" class="tab">
-      <div class="page-header">
-        <h1>Dashboard Overview</h1>
-        <p>Real-time system statistics</p>
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-label">Total Users</div>
+        <div class="stat-val white" id="dash-total-users">—</div>
       </div>
-      <div class="stats">
-        <div class="stat-box">
-          <h3 id="totalUsers">—</h3>
-          <p>Total Users</p>
-        </div>
-        <div class="stat-box">
-          <h3 id="onlineUsers">—</h3>
-          <p>Online Users</p>
-        </div>
-        <div class="stat-box">
-          <h3 id="totalInterviews">—</h3>
-          <p>Total Interviews</p>
-        </div>
-        <div class="stat-box">
-          <h3 id="avgScore">—</h3>
-          <p>Average Score</p>
-        </div>
+      <div class="stat-card">
+        <div class="stat-icon">🟢</div>
+        <div class="stat-label">Online Now</div>
+        <div class="stat-val green" id="dash-online">—</div>
       </div>
-      <div class="card">
-        <h2>Welcome, Admin</h2>
-        <p>Use the sidebar to manage users, view jobs, and check analytics.</p>
+      <div class="stat-card">
+        <div class="stat-icon">🎤</div>
+        <div class="stat-label">Total Interviews</div>
+        <div class="stat-val" id="dash-interviews">—</div>
       </div>
-    </section>
+      <div class="stat-card">
+        <div class="stat-icon">🏆</div>
+        <div class="stat-label">Avg Score</div>
+        <div class="stat-val" id="dash-avg">—</div>
+      </div>
+    </div>
 
-    <!-- USERS TAB -->
-    <section id="tab-users" class="tab hidden">
-      <div class="page-header">
-        <h1>Users</h1>
-        <p>All registered users in the system</p>
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3>📅 Monthly Interviews</h3>
+        <canvas id="chartDashInterviews" height="200"></canvas>
       </div>
-      <div class="card">
-        <div style="display:flex; align-items:center; margin-bottom:4px;">
-          <button class="btn-refresh" id="refreshBtn" onclick="loadUsers()">🔄 Refresh Users</button>
-          <span class="refresh-info" id="lastRefreshed"></span>
-        </div>
+      <div class="chart-card">
+        <h3>📊 Average Score per Month</h3>
+        <canvas id="chartDashScores" height="200"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        🏅 Top Scores
+        <button class="btn btn-ghost" onclick="loadDashboard()">↻ Refresh</button>
+      </div>
+      <div class="tbl-wrap">
         <table>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Interviews</th>
-              <th>Best Score</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="usersTable">
-            <tr><td colspan="6" class="empty-state">Click Refresh to load users</td></tr>
-          </tbody>
+          <thead><tr><th>User</th><th>Email</th><th>Best Score</th><th>Interviews</th><th>Status</th></tr></thead>
+          <tbody id="dash-top-users"></tbody>
         </table>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- ANALYTICS TAB -->
-    <section id="tab-analytics" class="tab hidden">
-      <div class="page-header">
-        <h1>Analytics</h1>
-        <p>System performance and interview data</p>
-      </div>
-      <div class="stats">
-        <div class="stat-box">
-          <h3 id="anaTotal">—</h3>
-          <p>Total Interviews</p>
-        </div>
-        <div class="stat-box">
-          <h3 id="anaAvg">—</h3>
-          <p>Average Score</p>
-        </div>
-        <div class="stat-box">
-          <h3 id="anaHigh">—</h3>
-          <p>Highest Score</p>
-        </div>
-        <div class="stat-box">
-          <h3 id="anaLow">—</h3>
-          <p>Lowest Score</p>
-        </div>
-      </div>
-      <div class="card">
-        <h2>Reports</h2>
-        <p>Detailed analytics and performance data from all interview sessions.</p>
-      </div>
-    </section>
+  <!-- ── USERS TAB ── -->
+  <section id="tab-users" class="tab hidden">
+    <div class="page-title">Users</div>
+    <div class="page-sub">All registered users and their activity</div>
 
-  </main>
+    <div class="card">
+      <div class="card-title">
+        All Users
+        <button class="btn btn-ghost" onclick="loadUsers()">↻ Refresh</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Interviews</th><th>Best Score</th><th>Last Active</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="users-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── JOBS TAB ── -->
+  <section id="tab-jobs" class="tab hidden">
+    <div class="page-title">Jobs & Questions</div>
+    <div class="page-sub">Create job positions and interview questions for users</div>
+
+    <div class="card">
+      <div class="card-title">➕ Create New Job</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Job Title *</label>
+          <input type="text" id="new-job-title" placeholder="e.g. Software Engineer">
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <textarea id="new-job-desc" placeholder="Brief description of this role..."></textarea>
+        </div>
+        <div class="field">
+          <label>Questions (add at least 5)</label>
+          <div class="q-list" id="new-q-list"></div>
+          <div class="q-input-row">
+            <input type="text" id="new-q-input" placeholder="Type a question and press Add">
+            <button class="btn btn-ghost" onclick="addQuestionToNewJob()">+ Add</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-gold" onclick="submitNewJob()">💾 Save Job</button>
+          <button class="btn btn-ghost" onclick="clearJobForm()">✕ Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        📋 Existing Jobs
+        <button class="btn btn-ghost" onclick="loadJobs()">↻ Refresh</button>
+      </div>
+      <div class="jobs-grid" id="jobs-grid">
+        <div style="color:var(--text3);font-size:.85rem">Loading jobs...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── ANALYTICS TAB ── -->
+  <section id="tab-analytics" class="tab hidden">
+    <div class="page-title">Analytics</div>
+    <div class="page-sub">Platform performance and user engagement over time</div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-icon">🎤</div><div class="stat-label">Total Interviews</div><div class="stat-val" id="ana-total">—</div></div>
+      <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-label">Average Score</div><div class="stat-val" id="ana-avg">—</div></div>
+      <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-label">Highest Score</div><div class="stat-val green" id="ana-high">—</div></div>
+      <div class="stat-card"><div class="stat-icon">📉</div><div class="stat-label">Lowest Score</div><div class="stat-val" id="ana-low">—</div></div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3>📅 Interviews per Month (This Year)</h3>
+        <canvas id="chartMonthlyInterviews" height="220"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>👥 New Users per Month</h3>
+        <canvas id="chartMonthlyUsers" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:20px">
+      <h3>📊 Average Score per Month</h3>
+      <canvas id="chartMonthlyScores" height="160"></canvas>
+    </div>
+  </section>
+
+</div>
+</main>
+
+<!-- ── Delete confirm modal ── -->
+<div id="delete-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3>⚠️ Confirm Delete</h3>
+    <p id="delete-msg">Are you sure?</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add question to existing job modal ── -->
+<div id="addq-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3>➕ Add Question</h3>
+    <p id="addq-job-name">Job: —</p>
+    <div class="field">
+      <label>Question Text</label>
+      <textarea id="addq-text" placeholder="Type the interview question..." rows="3"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeAddQModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="submitAddQuestion()">Add Question</button>
+    </div>
+  </div>
 </div>
 
 <script>
 const API = window.location.origin;
 
-// FIXED: Online = last_active exists AND within last 60 seconds
-// Never trust the is_online DB flag — it gets stuck
-const ONLINE_THRESHOLD_MS = 60 * 1000;
+// Chart instances
+let chartDashInterviews = null;
+let chartDashScores     = null;
+let chartMonthly        = null;
+let chartUsers          = null;
+let chartScores         = null;
 
-function isUserOnline(user) {
-  if (!user.last_active) return false;
-  const lastActive = new Date(user.last_active + "Z"); // force UTC parse
-  const now = new Date();
-  return (now - lastActive) < ONLINE_THRESHOLD_MS;
-}
+// State for delete
+let deleteTarget = null;
 
-// ==========================
+// State for new job questions
+let newJobQuestions = [];
+
+// State for add-question modal
+let addQJobId   = null;
+let addQJobName = "";
+
+// ═══════════════════════════════════════════
 // TAB SWITCHING
-// ==========================
-function showTab(tabName) {
-  document.querySelectorAll(".tab").forEach(tab => tab.classList.add("hidden"));
-  document.querySelectorAll(".admin-sidebar button").forEach(btn => btn.classList.remove("active"));
+// ═══════════════════════════════════════════
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.add("hidden"));
+  document.querySelectorAll(".sb-item").forEach(b => b.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.remove("hidden");
+  document.getElementById("btn-" + name).classList.add("active");
 
-  document.getElementById("tab-" + tabName).classList.remove("hidden");
-  const activeBtn = document.getElementById("btn-" + tabName);
-  if (activeBtn) activeBtn.classList.add("active");
-
-  if (tabName === "dashboard") loadDashboard();
-  if (tabName === "users")     loadUsers();
-  if (tabName === "analytics") loadAnalytics();
+  if (name === "dashboard") loadDashboard();
+  if (name === "users")     loadUsers();
+  if (name === "jobs")      loadJobs();
+  if (name === "analytics") loadAnalytics();
 }
 
-// ==========================
-// LOAD DASHBOARD STATS
-// ==========================
+// ═══════════════════════════════════════════
+// CHART HELPERS
+// ═══════════════════════════════════════════
+const CHART_DEFAULTS = {
+  responsive: true,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { ticks: { color: "#6b7a99", font: { size: 11 } }, grid: { color: "rgba(255,255,255,.05)" } },
+    y: { ticks: { color: "#6b7a99", font: { size: 11 } }, grid: { color: "rgba(255,255,255,.05)" }, beginAtZero: true }
+  }
+};
+
+function makeBarChart(canvasId, labels, data, color, instance) {
+  const ctx = document.getElementById(canvasId).getContext("2d");
+  if (instance) instance.destroy();
+  return new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{ data, backgroundColor: color + "99", borderColor: color, borderWidth: 2, borderRadius: 6 }]
+    },
+    options: { ...CHART_DEFAULTS }
+  });
+}
+
+function makeLineChart(canvasId, labels, data, color, instance) {
+  const ctx = document.getElementById(canvasId).getContext("2d");
+  if (instance) instance.destroy();
+  return new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        data, borderColor: color, backgroundColor: color + "22",
+        borderWidth: 2.5, pointBackgroundColor: color, pointRadius: 4, tension: 0.4, fill: true
+      }]
+    },
+    options: { ...CHART_DEFAULTS }
+  });
+}
+
+// ═══════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════
 async function loadDashboard() {
   try {
-    const [resUsers, resAna] = await Promise.all([
+    const [anaRes, usersRes, monthRes] = await Promise.all([
+      fetch(API + "/admin/analytics"),
       fetch(API + "/admin/users"),
-      fetch(API + "/admin/analytics")
+      fetch(API + "/admin/analytics/monthly")
     ]);
+    const ana    = await anaRes.json();
+    const users  = await usersRes.json();
+    const monthly = await monthRes.json();
 
-    if (resUsers.ok) {
-      const users = await resUsers.json();
-      // FIXED: calculate online from last_active timestamp, not DB flag
-      const onlineCount = users.filter(u => isUserOnline(u)).length;
-      document.getElementById("totalUsers").innerText  = users.length;
-      document.getElementById("onlineUsers").innerText = onlineCount;
-    }
+    document.getElementById("dash-total-users").textContent = ana.total_users ?? users.length;
+    document.getElementById("dash-online").textContent      = ana.online_users ?? 0;
+    document.getElementById("dash-interviews").textContent  = ana.total_interviews ?? 0;
+    document.getElementById("dash-avg").textContent         = (ana.average_score ?? 0) + "%";
 
-    if (resAna.ok) {
-      const ana = await resAna.json();
-      document.getElementById("totalInterviews").innerText = ana.total_interviews ?? "—";
-      document.getElementById("avgScore").innerText = ana.average_score
-        ? ana.average_score + "%" : "—";
-    }
+    // Top users table
+    const sorted = [...users].sort((a, b) => (b.best_score || 0) - (a.best_score || 0));
+    document.getElementById("dash-top-users").innerHTML = sorted.slice(0, 10).map(u => `
+      <tr>
+        <td>${u.name}</td>
+        <td style="color:var(--text3)">${u.email}</td>
+        <td style="color:var(--gold);font-weight:700">${u.best_score != null ? u.best_score + "%" : "—"}</td>
+        <td>${u.interview_count ?? 0}</td>
+        <td>${u.is_online
+          ? "<span class='badge badge-online'>● Online</span>"
+          : "<span class='badge badge-offline'>○ Offline</span>"}</td>
+      </tr>`).join("") || "<tr><td colspan='5' style='color:var(--text3);text-align:center;padding:20px'>No users yet</td></tr>";
+
+    // Charts
+    const labels = monthly.map(m => m.month);
+    chartDashInterviews = makeBarChart("chartDashInterviews", labels, monthly.map(m => m.interviews), "#D4A017", chartDashInterviews);
+    chartDashScores     = makeLineChart("chartDashScores", labels, monthly.map(m => m.avg_score), "#2DD68C", chartDashScores);
+
   } catch (err) {
     console.error("Dashboard load error:", err);
   }
 }
 
-// ==========================
-// LOAD USERS TABLE
-// ==========================
+// ═══════════════════════════════════════════
+// USERS
+// ═══════════════════════════════════════════
 async function loadUsers() {
-  const tbody      = document.getElementById("usersTable");
-  const refreshBtn = document.getElementById("refreshBtn");
-
-  tbody.innerHTML = "<tr><td colspan='6' class='loading-state'>⏳ Loading users...</td></tr>";
-  if (refreshBtn) refreshBtn.disabled = true;
-
   try {
-    const res = await fetch(API + "/admin/users");
-
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`HTTP ${res.status}: ${errText}`);
-    }
-
+    const res   = await fetch(API + "/admin/users");
     const users = await res.json();
 
-    if (!Array.isArray(users) || users.length === 0) {
-      tbody.innerHTML = "<tr><td colspan='6' class='empty-state'>No users found</td></tr>";
+    document.getElementById("users-table").innerHTML = users.map(u => `
+      <tr>
+        <td style="color:var(--text3)">${u.user_id}</td>
+        <td style="font-weight:600">${u.name}</td>
+        <td style="color:var(--text3)">${u.email}</td>
+        <td>${u.interview_count ?? 0}</td>
+        <td style="color:var(--gold);font-weight:700">${u.best_score != null ? u.best_score + "%" : "—"}</td>
+        <td style="color:var(--text3);font-size:.78rem">${formatDate(u.last_active)}</td>
+        <td>${u.is_online
+          ? "<span class='badge badge-online'>● Online</span>"
+          : "<span class='badge badge-offline'>○ Offline</span>"}</td>
+        <td><button class="btn btn-danger" onclick="openDeleteUser(${u.user_id},'${u.name}')">🗑 Delete</button></td>
+      </tr>`).join("") || "<tr><td colspan='8' style='color:var(--text3);text-align:center;padding:20px'>No users found</td></tr>";
+  } catch (err) {
+    console.error("Load users error:", err);
+  }
+}
+
+function formatDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+// ═══════════════════════════════════════════
+// JOBS
+// ═══════════════════════════════════════════
+function addQuestionToNewJob() {
+  const input = document.getElementById("new-q-input");
+  const text  = input.value.trim();
+  if (!text) return;
+  newJobQuestions.push(text);
+  input.value = "";
+  renderNewJobQuestions();
+}
+
+document.addEventListener("keypress", e => {
+  if (e.target.id === "new-q-input" && e.key === "Enter") {
+    e.preventDefault();
+    addQuestionToNewJob();
+  }
+});
+
+function renderNewJobQuestions() {
+  document.getElementById("new-q-list").innerHTML = newJobQuestions.map((q, i) => `
+    <div class="q-item">
+      <span>${i + 1}. ${q}</span>
+      <button class="q-remove" onclick="removeNewQ(${i})">✕</button>
+    </div>`).join("");
+}
+
+function removeNewQ(i) {
+  newJobQuestions.splice(i, 1);
+  renderNewJobQuestions();
+}
+
+async function submitNewJob() {
+  const title = document.getElementById("new-job-title").value.trim();
+  const desc  = document.getElementById("new-job-desc").value.trim();
+
+  if (!title) { alert("Please enter a job title."); return; }
+  if (newJobQuestions.length < 1) { alert("Please add at least 1 question."); return; }
+
+  try {
+    const res = await fetch(API + "/admin/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ job_title: title, description: desc, questions: newJobQuestions })
+    });
+    const data = await res.json();
+    if (res.ok) {
+      alert(`✅ Job "${data.job_title}" created with ${data.question_count} questions!`);
+      clearJobForm();
+      loadJobs();
+    } else {
+      alert(data.detail || "Error creating job");
+    }
+  } catch (err) {
+    alert("Connection error: " + err.message);
+  }
+}
+
+function clearJobForm() {
+  document.getElementById("new-job-title").value = "";
+  document.getElementById("new-job-desc").value  = "";
+  document.getElementById("new-q-input").value   = "";
+  newJobQuestions = [];
+  renderNewJobQuestions();
+}
+
+async function loadJobs() {
+  try {
+    const res  = await fetch(API + "/admin/jobs");
+    const jobs = await res.json();
+
+    if (!jobs.length) {
+      document.getElementById("jobs-grid").innerHTML =
+        "<div style='color:var(--text3);font-size:.85rem'>No jobs created yet. Use the form above to add one.</div>";
       return;
     }
 
-    let html        = "";
-    let onlineCount = 0;
-
-    users.forEach(user => {
-      // FIXED: use timestamp-based check, never the DB flag
-      const isOnline = isUserOnline(user);
-      if (isOnline) onlineCount++;
-
-      const statusBadge = isOnline
-        ? "<span class='badge-online'>● ONLINE</span>"
-        : "<span class='badge-offline'>○ OFFLINE</span>";
-
-      const bestScore = user.best_score
-        ? `<strong>${user.best_score}%</strong>`
-        : "<span style='color:#9ca3af'>—</span>";
-
-      html += `
-        <tr>
-          <td>${user.user_id}</td>
-          <td>${user.name || "Unknown"}</td>
-          <td>${user.email}</td>
-          <td style="text-align:center">${user.interview_count ?? 0}</td>
-          <td style="text-align:center">${bestScore}</td>
-          <td>${statusBadge}</td>
-        </tr>
-      `;
-    });
-
-    tbody.innerHTML = html;
-
-    const totalEl  = document.getElementById("totalUsers");
-    const onlineEl = document.getElementById("onlineUsers");
-    if (totalEl)  totalEl.innerText  = users.length;
-    if (onlineEl) onlineEl.innerText = onlineCount;
-
-    const lastRefreshed = document.getElementById("lastRefreshed");
-    if (lastRefreshed) {
-      lastRefreshed.innerText = `Last updated: ${new Date().toLocaleTimeString()}`;
-    }
-
+    document.getElementById("jobs-grid").innerHTML = jobs.map(j => `
+      <div class="job-card">
+        <div class="job-card-title">${j.job_title}</div>
+        <div class="job-card-desc">${j.description || "No description"}</div>
+        <div class="job-card-meta">📝 ${j.question_count} question(s)</div>
+        <div class="job-card-actions">
+          <button class="btn btn-ghost" style="font-size:.78rem;padding:6px 12px"
+            onclick="toggleJobQuestions(${j.admin_job_id})">
+            👁 View Questions
+          </button>
+          <button class="btn btn-ghost" style="font-size:.78rem;padding:6px 12px"
+            onclick="openAddQModal(${j.admin_job_id}, '${j.job_title.replace(/'/g,"\\'")}')">
+            ➕ Add Q
+          </button>
+          <button class="btn btn-danger" style="font-size:.78rem;padding:6px 12px"
+            onclick="openDeleteJob(${j.admin_job_id},'${j.job_title.replace(/'/g,"\\'")}')">
+            🗑
+          </button>
+        </div>
+        <div class="job-expand" id="job-expand-${j.admin_job_id}">
+          ${j.questions.map(q => `
+            <div class="q-item" style="margin-top:6px">
+              <span>${q.question_text}</span>
+              <button class="q-remove" onclick="deleteQuestion(${q.question_id}, ${j.admin_job_id})">✕</button>
+            </div>`).join("") || "<div style='color:var(--text3);font-size:.8rem;margin-top:8px'>No questions yet.</div>"}
+        </div>
+      </div>`).join("");
   } catch (err) {
-    console.error("Error loading users:", err);
-    tbody.innerHTML = `<tr><td colspan='6' class='error-state'>❌ Error: ${err.message}<br><small>Check browser console (F12) for details.</small></td></tr>`;
-  } finally {
-    if (refreshBtn) refreshBtn.disabled = false;
+    console.error("Load jobs error:", err);
   }
 }
 
-// ==========================
-// LOAD ANALYTICS
-// ==========================
+function toggleJobQuestions(jobId) {
+  const el = document.getElementById("job-expand-" + jobId);
+  el.classList.toggle("open");
+}
+
+async function deleteQuestion(questionId, jobId) {
+  if (!confirm("Delete this question?")) return;
+  try {
+    await fetch(API + "/admin/questions/" + questionId, { method: "DELETE" });
+    loadJobs();
+  } catch (err) {
+    alert("Error deleting question");
+  }
+}
+
+function openAddQModal(jobId, jobName) {
+  addQJobId   = jobId;
+  addQJobName = jobName;
+  document.getElementById("addq-job-name").textContent = "Job: " + jobName;
+  document.getElementById("addq-text").value = "";
+  document.getElementById("addq-modal").classList.remove("hidden");
+}
+
+function closeAddQModal() {
+  document.getElementById("addq-modal").classList.add("hidden");
+}
+
+async function submitAddQuestion() {
+  const text = document.getElementById("addq-text").value.trim();
+  if (!text) { alert("Please type a question."); return; }
+  try {
+    const res = await fetch(API + "/admin/jobs/" + addQJobId + "/questions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question_text: text })
+    });
+    if (res.ok) {
+      closeAddQModal();
+      loadJobs();
+    } else {
+      alert("Error adding question");
+    }
+  } catch (err) {
+    alert("Connection error");
+  }
+}
+
+// ═══════════════════════════════════════════
+// ANALYTICS
+// ═══════════════════════════════════════════
 async function loadAnalytics() {
   try {
-    const res = await fetch(API + "/admin/analytics");
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const [anaRes, monthRes] = await Promise.all([
+      fetch(API + "/admin/analytics"),
+      fetch(API + "/admin/analytics/monthly")
+    ]);
+    const ana     = await anaRes.json();
+    const monthly = await monthRes.json();
 
-    const ana = await res.json();
-    document.getElementById("anaTotal").innerText = ana.total_interviews ?? "0";
-    document.getElementById("anaAvg").innerText   = ana.average_score ? ana.average_score + "%" : "0%";
-    document.getElementById("anaHigh").innerText  = ana.highest_score ? ana.highest_score + "%" : "0%";
-    document.getElementById("anaLow").innerText   = ana.lowest_score  ? ana.lowest_score  + "%" : "0%";
+    document.getElementById("ana-total").textContent = ana.total_interviews ?? 0;
+    document.getElementById("ana-avg").textContent   = (ana.average_score ?? 0) + "%";
+    document.getElementById("ana-high").textContent  = (ana.highest_score ?? 0) + "%";
+    document.getElementById("ana-low").textContent   = (ana.lowest_score ?? 0) + "%";
+
+    const labels = monthly.map(m => m.month);
+    chartMonthly = makeBarChart("chartMonthlyInterviews", labels, monthly.map(m => m.interviews), "#D4A017", chartMonthly);
+    chartUsers   = makeBarChart("chartMonthlyUsers",      labels, monthly.map(m => m.new_users),  "#818CF8", chartUsers);
+    chartScores  = makeLineChart("chartMonthlyScores",    labels, monthly.map(m => m.avg_score),  "#2DD68C", chartScores);
+
   } catch (err) {
-    console.error("Analytics load error:", err);
+    console.error("Analytics error:", err);
   }
 }
 
-// ==========================
+// ═══════════════════════════════════════════
+// DELETE MODAL
+// ═══════════════════════════════════════════
+function openDeleteUser(userId, name) {
+  deleteTarget = { type: "user", id: userId };
+  document.getElementById("delete-msg").textContent = `Delete user "${name}"? This cannot be undone.`;
+  document.getElementById("delete-modal").classList.remove("hidden");
+}
+
+function openDeleteJob(jobId, title) {
+  deleteTarget = { type: "job", id: jobId };
+  document.getElementById("delete-msg").textContent = `Delete job "${title}" and all its questions? This cannot be undone.`;
+  document.getElementById("delete-modal").classList.remove("hidden");
+}
+
+function closeDeleteModal() {
+  document.getElementById("delete-modal").classList.add("hidden");
+  deleteTarget = null;
+}
+
+async function confirmDelete() {
+  if (!deleteTarget) return;
+  try {
+    if (deleteTarget.type === "user") {
+      await fetch(API + "/admin/users/" + deleteTarget.id, { method: "DELETE" });
+      loadUsers();
+    } else if (deleteTarget.type === "job") {
+      await fetch(API + "/admin/jobs/" + deleteTarget.id, { method: "DELETE" });
+      loadJobs();
+    }
+  } catch (err) {
+    alert("Delete failed: " + err.message);
+  }
+  closeDeleteModal();
+}
+
+// ═══════════════════════════════════════════
 // LOGOUT
-// ==========================
+// ═══════════════════════════════════════════
 function logout() {
   localStorage.clear();
   window.location.href = "/";
 }
 
-// ==========================
-// INIT
-// ==========================
-showTab('dashboard');
-</script>
+// ═══════════════════════════════════════════
+// AUTO REFRESH USERS EVERY 30s
+// ═══════════════════════════════════════════
+setInterval(() => {
+  const active = document.querySelector(".sb-item.active");
+  if (active && active.id === "btn-users")     loadUsers();
+  if (active && active.id === "btn-dashboard") loadDashboard();
+}, 30000);
 
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+showTab("dashboard");
+</script>
 </body>
 </html>
