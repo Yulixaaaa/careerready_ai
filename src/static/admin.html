@@ -575,12 +575,16 @@ async function loadJobs() {
     document.getElementById("jobs-grid").innerHTML = jobs.map(j => `
       <div class="job-card">
         <div class="job-card-title">${j.job_title}</div>
-        <div class="job-card-desc">${j.description || "No description"}</div>
+        <div class="job-card-desc">${j.description || 'No description'}</div>
         <div class="job-card-meta">📝 ${j.question_count} question(s)</div>
-        <div class="job-card-actions">
+        <div class="job-card-actions" style="flex-wrap:wrap;gap:6px">
           <button class="btn btn-ghost" style="font-size:.78rem;padding:6px 12px"
             onclick="toggleJobQuestions(${j.admin_job_id})">
-            👁 View Questions
+            👁 Questions
+          </button>
+          <button class="btn btn-ghost" style="font-size:.78rem;padding:6px 12px;color:#F0BE3D;border-color:rgba(212,160,23,.4)"
+            onclick="openEditDescModal(${j.admin_job_id})">
+            ✏️ Edit
           </button>
           <button class="btn btn-ghost" style="font-size:.78rem;padding:6px 12px"
             onclick="openAddQModal(${j.admin_job_id}, '${j.job_title.replace(/'/g,"\\'")}')">
@@ -593,12 +597,31 @@ async function loadJobs() {
         </div>
         <div class="job-expand" id="job-expand-${j.admin_job_id}">
           ${j.questions.map(q => `
-            <div class="q-item" style="margin-top:6px">
-              <span>${q.question_text}</span>
-              <button class="q-remove" onclick="deleteQuestion(${q.question_id}, ${j.admin_job_id})">✕</button>
-            </div>`).join("") || "<div style='color:var(--text3);font-size:.8rem;margin-top:8px'>No questions yet.</div>"}
+            <div class="q-item" style="margin-top:6px" id="qrow-${q.question_id}">
+              <span id="qspan-${q.question_id}" style="flex:1;font-size:.83rem">${q.question_text}</span>
+              <div style="display:flex;gap:4px">
+                <button style="background:rgba(212,160,23,.15);color:#F0BE3D;border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:12px"
+                  onclick="startEditQ(${q.question_id})">✏</button>
+                <button class="q-remove" onclick="deleteQuestion(${q.question_id}, ${j.admin_job_id})">✕</button>
+              </div>
+            </div>
+            <div id="qedit-${q.question_id}" style="display:none;margin:4px 0">
+              <div style="display:flex;gap:6px">
+                <input id="qeinput-${q.question_id}" type="text"
+                  style="flex:1;padding:7px 10px;background:var(--bg4);border:1px solid var(--gold);border-radius:6px;color:var(--text);font-size:.83rem"
+                  value="${q.question_text.replace(/"/g,'&quot;')}">
+                <button class="btn btn-gold" style="font-size:.75rem;padding:6px 10px"
+                  onclick="saveEditQ(${q.question_id})">Save</button>
+                <button class="btn btn-ghost" style="font-size:.75rem;padding:6px 8px"
+                  onclick="cancelEditQ(${q.question_id})">✕</button>
+              </div>
+            </div>`).join('') || "<div style='color:var(--text3);font-size:.8rem;margin-top:8px'>No questions yet.</div>"}
         </div>
       </div>`).join("");
+  
+  // Store jobs data for edit modal
+  window._jobsData = {};
+  jobs.forEach(j => { window._jobsData[j.admin_job_id] = j; });
   } catch (err) {
     console.error("Load jobs error:", err);
   }
@@ -636,13 +659,15 @@ function closeAddQModal() {
 // ═══════════════════════════════════════════
 let editDescJobId = null;
 
-function openEditDescModal(jobId, jobTitle, jobDesc) {
+function openEditDescModal(jobId) {
   editDescJobId = jobId;
+  const j = (window._jobsData || {})[jobId] || {};
+  const jobTitle = j.job_title || '';
+  const jobDesc  = j.description || '';
   document.getElementById("editdesc-job-name").textContent = "Job: " + jobTitle;
   document.getElementById("editdesc-title").value = jobTitle;
-  const descVal = jobDesc || "";
-  document.getElementById("editdesc-text").value = descVal;
-  document.getElementById("editdesc-charcount").textContent = descVal.length + " characters";
+  document.getElementById("editdesc-text").value = jobDesc;
+  document.getElementById("editdesc-charcount").textContent = jobDesc.length + " characters";
   document.getElementById("editdesc-modal").classList.remove("hidden");
 }
 
@@ -806,6 +831,42 @@ async function saveEditQuestion(qId) {
     }
   } catch (err) {
     alert("Connection error: " + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════
+// INLINE QUESTION EDIT
+// ═══════════════════════════════════════════
+function startEditQ(qId) {
+  document.getElementById('qrow-' + qId).style.display = 'none';
+  document.getElementById('qedit-' + qId).style.display = 'block';
+  const inp = document.getElementById('qeinput-' + qId);
+  if (inp) { inp.focus(); inp.select(); }
+}
+
+function cancelEditQ(qId) {
+  document.getElementById('qrow-' + qId).style.display = 'flex';
+  document.getElementById('qedit-' + qId).style.display = 'none';
+}
+
+async function saveEditQ(qId) {
+  const inp = document.getElementById('qeinput-' + qId);
+  const newText = inp ? inp.value.trim() : '';
+  if (!newText) { alert('Question cannot be empty.'); return; }
+  try {
+    const res = await fetch(API + '/admin/questions/' + qId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question_text: newText })
+    });
+    if (res.ok) {
+      document.getElementById('qspan-' + qId).textContent = newText;
+      cancelEditQ(qId);
+    } else {
+      alert('Error saving question');
+    }
+  } catch(err) {
+    alert('Connection error: ' + err.message);
   }
 }
 
