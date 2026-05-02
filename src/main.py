@@ -417,3 +417,29 @@ def fix_old_records():
         print(f"Startup migration warning: {e}")
     finally:
         db.close()
+
+# ─── Admin: Edit Job ──────────────────────────────────────────────────────────
+@app.patch("/admin/jobs/{admin_job_id}")
+async def edit_admin_job(admin_job_id: int, request: Request,
+                          db: Session = Depends(get_db)):
+    body        = await request.json()
+    new_title   = body.get("job_title", "").strip()
+    new_desc    = body.get("description", "").strip()
+
+    if not new_title:
+        raise HTTPException(400, "job_title cannot be empty")
+
+    job = db.query(AdminJob).filter(AdminJob.admin_job_id == admin_job_id).first()
+    if not job:
+        raise HTTPException(404, "Job not found")
+
+    job.job_title   = new_title
+    job.description = new_desc
+    db.commit()
+    db.refresh(job)
+    return {
+        "status":      "updated",
+        "admin_job_id": job.admin_job_id,
+        "job_title":    job.job_title,
+        "description":  job.description
+    }

@@ -324,6 +324,27 @@ tr:hover td{background:rgba(255,255,255,.02);color:var(--text)}
   </div>
 </div>
 
+<!-- ── Edit Job Description modal ── -->
+<div id="editdesc-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3>✏️ Edit Job Description</h3>
+    <p id="editdesc-job-name" style="color:var(--gold-l);font-weight:600;margin-bottom:16px">Job: —</p>
+    <div class="field">
+      <label>Job Title</label>
+      <input type="text" id="editdesc-title" placeholder="Job title...">
+    </div>
+    <div class="field">
+      <label>Description <span style="color:var(--text3);font-weight:400">(keep it 2–3 sentences)</span></label>
+      <textarea id="editdesc-text" rows="4" placeholder="Short description of this role..."></textarea>
+    </div>
+    <div style="font-size:.75rem;color:var(--text3);margin-top:-6px;margin-bottom:8px" id="editdesc-charcount">0 characters</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeEditDescModal()">Cancel</button>
+      <button class="btn btn-gold" onclick="submitEditDesc()">💾 Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const API = window.location.origin;
 
@@ -608,6 +629,60 @@ function openAddQModal(jobId, jobName) {
 
 function closeAddQModal() {
   document.getElementById("addq-modal").classList.add("hidden");
+}
+
+// ═══════════════════════════════════════════
+// EDIT JOB DESCRIPTION
+// ═══════════════════════════════════════════
+let editDescJobId = null;
+
+function openEditDescModal(jobId, jobTitle, jobDesc) {
+  editDescJobId = jobId;
+  document.getElementById("editdesc-job-name").textContent = "Job: " + jobTitle;
+  document.getElementById("editdesc-title").value = jobTitle;
+  const descVal = jobDesc || "";
+  document.getElementById("editdesc-text").value = descVal;
+  document.getElementById("editdesc-charcount").textContent = descVal.length + " characters";
+  document.getElementById("editdesc-modal").classList.remove("hidden");
+}
+
+function closeEditDescModal() {
+  document.getElementById("editdesc-modal").classList.add("hidden");
+  editDescJobId = null;
+}
+
+// Live character counter
+document.addEventListener("input", e => {
+  if (e.target.id === "editdesc-text") {
+    const len = e.target.value.length;
+    const el  = document.getElementById("editdesc-charcount");
+    el.textContent = len + " characters";
+    el.style.color = len > 300 ? "var(--danger)" : "var(--text3)";
+  }
+});
+
+async function submitEditDesc() {
+  const newTitle = document.getElementById("editdesc-title").value.trim();
+  const newDesc  = document.getElementById("editdesc-text").value.trim();
+  if (!newTitle) { alert("Job title cannot be empty."); return; }
+  if (!editDescJobId) return;
+
+  try {
+    const res = await fetch(API + "/admin/jobs/" + editDescJobId, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ job_title: newTitle, description: newDesc })
+    });
+    if (res.ok) {
+      closeEditDescModal();
+      loadJobs(); // refresh the grid
+    } else {
+      const data = await res.json();
+      alert(data.detail || "Error saving changes");
+    }
+  } catch (err) {
+    alert("Connection error: " + err.message);
+  }
 }
 
 async function submitAddQuestion() {
