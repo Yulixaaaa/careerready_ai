@@ -94,10 +94,16 @@ def admin_users(db: Session = Depends(get_db)):
                 Interview.user_id == u.user_id
             ).count()
 
-            best_pred = (db.query(Prediction)
-                           .filter(Prediction.user_id == u.user_id)
-                           .order_by(Prediction.result.desc())
-                           .first())
+            # Query best score safely using raw SQL to avoid missing column crash
+            try:
+                from sqlalchemy import text as _text
+                row = db.execute(
+                    _text("SELECT MAX(result) FROM predictions WHERE user_id = :uid AND result IS NOT NULL"),
+                    {"uid": u.user_id}
+                ).fetchone()
+                best_score = round(float(row[0]), 2) if row and row[0] is not None else None
+            except Exception:
+                best_score = None
 
             result.append({
                 "user_id":         u.user_id,
@@ -106,7 +112,7 @@ def admin_users(db: Session = Depends(get_db)):
                 "is_online":       is_online,
                 "last_active":     last_active.isoformat() if last_active else None,
                 "interview_count": interview_count,
-                "best_score":      round(float(best_pred.result), 2) if best_pred and best_pred.result else None,
+                "best_score":      best_score,
             })
         except Exception as e:
             # Never let one bad user record crash the whole list
@@ -218,14 +224,26 @@ def delete_question(question_id: int, db: Session = Depends(get_db)):
 # ─── Admin: Analytics ────────────────────────────────────────────────────────
 @app.get("/admin/analytics")
 def get_analytics(db: Session = Depends(get_db)):
-    predictions = db.query(Prediction).all()
-    scores = [round(float(p.result), 2) for p in predictions if p.result is not None]
-    total_users   = db.query(User).count()
-    now           = datetime.utcnow()
-    online_users  = sum(
-        1 for u in db.query(User).all()
-        if getattr(u, "last_active", None) and (now - u.last_active).total_seconds() < 35
-    )
+    from sqlalchemy import text
+    # Query only result column — avoids crash from missing created_at column
+    try:
+        rows = db.execute(text("SELECT result FROM predictions WHERE result IS NOT NULL")).fetchall()
+        scores = [round(float(r[0]), 2) for r in rows if r[0] is not None]
+    except Exception:
+        scores = []
+
+    total_users  = db.query(User).count()
+    now          = datetime.utcnow()
+
+    online_users = 0
+    try:
+        for u in db.query(User).all():
+            la = getattr(u, "last_active", None)
+            if la and (now - la).total_seconds() < 35:
+                online_users += 1
+    except Exception:
+        online_users = 0
+
     return {
         "total_interviews": len(scores),
         "average_score":    round(sum(scores) / len(scores), 2) if scores else 0,
@@ -241,27 +259,34 @@ def get_monthly_analytics(db: Session = Depends(get_db)):
     from sqlalchemy import extract
     current_year = datetime.utcnow().year
 
-    # Interviews per month
-    interview_rows = (db.query(
-            extract('month', Interview.created_at).label('month'),
-            func.count(Interview.interview_id).label('count'),
-            func.avg(Prediction.result).label('avg_score')
+    # Interviews per month — join via Interview.created_at (not Prediction.created_at)
+    try:
+        interview_rows = (db.query(
+                extract('month', Interview.created_at).label('month'),
+                func.count(Interview.interview_id).label('count'),
+                func.avg(Prediction.result).label('avg_score')
+            )
+            .outerjoin(Prediction, Prediction.interview_id == Interview.interview_id)
+            .filter(extract('year', Interview.created_at) == current_year)
+            .group_by('month')
+            .all()
         )
-        .outerjoin(Prediction, Prediction.interview_id == Interview.interview_id)
-        .filter(extract('year', Interview.created_at) == current_year)
-        .group_by('month')
-        .all()
-    )
+    except Exception:
+        interview_rows = []
 
-    # Users registered per month
-    user_rows = (db.query(
-            extract('month', User.last_active).label('month'),
-            func.count(User.user_id).label('count')
+    # Users registered per month — use last_active safely
+    try:
+        user_rows = (db.query(
+                extract('month', User.last_active).label('month'),
+                func.count(User.user_id).label('count')
+            )
+            .filter(User.last_active != None)
+            .filter(extract('year', User.last_active) == current_year)
+            .group_by('month')
+            .all()
         )
-        .filter(extract('year', User.last_active) == current_year)
-        .group_by('month')
-        .all()
-    )
+    except Exception:
+        user_rows = []
 
     month_names = ["Jan","Feb","Mar","Apr","May","Jun",
                    "Jul","Aug","Sep","Oct","Nov","Dec"]
