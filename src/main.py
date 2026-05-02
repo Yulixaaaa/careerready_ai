@@ -387,61 +387,51 @@ def user_offline(user_id: int, db: Session = Depends(get_db)):
 @app.on_event("startup")
 def fix_old_records():
     """
-    Migration: fix old interviews that have NULL or 'ongoing' status
-    but already have a prediction (meaning they were completed).
-    Also adds missing columns via alter table if needed.
+    PostgreSQL-safe migration.
+    Each ALTER TABLE runs in its OWN connection with AUTOCOMMIT=True
+    so a failure on one column never aborts the others.
     """
     from sqlalchemy import text
-    db = next(get_db())
-    try:
-        # Add missing columns to predictions table if they don't exist
-        for col, coltype in [
-            ("feedback",        "TEXT"),
-            ("communication",   "FLOAT DEFAULT 0"),
-            ("technical",       "FLOAT DEFAULT 0"),
-            ("problem_solving", "FLOAT DEFAULT 0"),
-            ("confidence",      "FLOAT DEFAULT 0"),
-            ("created_at",      "DATETIME"),
-        ]:
+
+    # All migrations to run — each gets its own connection+transaction
+    migrations = [
+        "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS feedback TEXT",
+        "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS communication FLOAT DEFAULT 0",
+        "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS technical FLOAT DEFAULT 0",
+        "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS problem_solving FLOAT DEFAULT 0",
+        "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS confidence FLOAT DEFAULT 0",
+        "ALTER TABLE predictions ADD COLUMN IF NOT EXISTS created_at TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active TIMESTAMP",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE interviews ADD COLUMN IF NOT EXISTS answers TEXT",
+        "ALTER TABLE interviews ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'completed'",
+        "ALTER TABLE interviews ADD COLUMN IF NOT EXISTS created_at TIMESTAMP",
+        "ALTER TABLE jobs ADD COLUMN IF NOT EXISTS admin_job_id INTEGER",
+    ]
+
+    # Use raw engine connection with AUTOCOMMIT so each DDL is independent
+    with engine.connect() as conn:
+        conn.execution_options(isolation_level="AUTOCOMMIT")
+        for sql in migrations:
             try:
-                db.execute(text(f"ALTER TABLE predictions ADD COLUMN {col} {coltype}"))
-                db.commit()
-            except Exception:
-                pass  # column already exists
+                conn.execute(text(sql))
+                print(f"  ✅ {sql[:60]}")
+            except Exception as e:
+                print(f"  ⚠️  Skipped ({str(e)[:60]})")
 
-        # Add last_active to users if missing
-        try:
-            db.execute(text("ALTER TABLE users ADD COLUMN last_active TIMESTAMP"))
-            db.commit()
-        except Exception:
-            pass
-
-        # Add answers column to interviews if missing
-        try:
-            db.execute(text("ALTER TABLE interviews ADD COLUMN answers TEXT"))
-            db.commit()
-        except Exception:
-            pass
-
-        # Add status column to interviews if missing
-        try:
-            db.execute(text("ALTER TABLE interviews ADD COLUMN status VARCHAR(50) DEFAULT 'completed'"))
-            db.commit()
-        except Exception:
-            pass
-
-        # Fix interviews that have a prediction but wrong status
-        interviews = db.query(Interview).all()
-        for iv in interviews:
-            pred = iv.predictions
-            if pred and (iv.status is None or iv.status == "ongoing"):
-                iv.status = "completed"
-        db.commit()
+    # Fix interview statuses in a normal transaction
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("""
+                UPDATE interviews SET status = 'completed'
+                WHERE interview_id IN (
+                    SELECT DISTINCT interview_id FROM predictions
+                ) AND (status IS NULL OR status = 'ongoing')
+            """))
+            conn.commit()
         print("✅ Startup migration complete")
     except Exception as e:
-        print(f"Startup migration warning: {e}")
-    finally:
-        db.close()
+        print(f"  ⚠️  Status fix skipped: {e}")
 
 # ─── Admin: Edit Job ──────────────────────────────────────────────────────────
 @app.patch("/admin/jobs/{admin_job_id}")
