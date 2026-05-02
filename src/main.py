@@ -212,6 +212,21 @@ def delete_admin_job(admin_job_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"status": "deleted"}
 
+@app.patch("/admin/questions/{question_id}")
+async def edit_question(question_id: int, request: Request,
+                        db: Session = Depends(get_db)):
+    body      = await request.json()
+    new_text  = body.get("question_text", "").strip()
+    if not new_text:
+        raise HTTPException(400, "question_text cannot be empty")
+    q = db.query(AdminQuestion).filter(AdminQuestion.question_id == question_id).first()
+    if not q:
+        raise HTTPException(404, "Question not found")
+    q.question_text = new_text
+    db.commit()
+    db.refresh(q)
+    return {"question_id": q.question_id, "question_text": q.question_text}
+
 @app.delete("/admin/questions/{question_id}")
 def delete_question(question_id: int, db: Session = Depends(get_db)):
     q = db.query(AdminQuestion).filter(AdminQuestion.question_id == question_id).first()

@@ -769,6 +769,47 @@ async function confirmDelete() {
 }
 
 // ═══════════════════════════════════════════
+// EDIT QUESTION INLINE
+// ═══════════════════════════════════════════
+function startEditQuestion(qId, currentText) {
+  // Hide the text row, show the edit input
+  document.getElementById("qtext-" + qId).parentElement.parentElement.style.display = "none";
+  const editDiv = document.getElementById("qedit-" + qId);
+  editDiv.style.display = "block";
+  const input = document.getElementById("qedit-input-" + qId);
+  input.value = currentText;
+  input.focus();
+  input.select();
+}
+
+function cancelEditQuestion(qId) {
+  document.getElementById("qitem-" + qId).style.display = "flex";
+  document.getElementById("qedit-" + qId).style.display = "none";
+}
+
+async function saveEditQuestion(qId) {
+  const newText = document.getElementById("qedit-input-" + qId).value.trim();
+  if (!newText) { alert("Question cannot be empty."); return; }
+
+  try {
+    const res = await fetch(API + "/admin/questions/" + qId, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question_text: newText })
+    });
+    if (res.ok) {
+      // Update the text in place without full reload
+      document.getElementById("qtext-" + qId).textContent = newText;
+      cancelEditQuestion(qId);
+    } else {
+      alert("Error saving question");
+    }
+  } catch (err) {
+    alert("Connection error: " + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════
 // LOGOUT
 // ═══════════════════════════════════════════
 function logout() {
