@@ -444,6 +444,23 @@ def fix_old_records():
                 ) AND (status IS NULL OR status = 'ongoing')
             """))
             conn.commit()
+        # Create job_suggestions table if not exists
+        try:
+            db.execute(text("""
+                CREATE TABLE IF NOT EXISTS job_suggestions (
+                    suggestion_id SERIAL PRIMARY KEY,
+                    user_id INTEGER REFERENCES users(user_id) ON DELETE SET NULL,
+                    job_title VARCHAR(255) NOT NULL,
+                    reason TEXT,
+                    status VARCHAR(50) DEFAULT 'pending',
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """))
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            print(f"  ⚠️  job_suggestions table: {e}")
+
         print("✅ Startup migration complete")
     except Exception as e:
         print(f"  ⚠️  Status fix skipped: {e}")
@@ -473,3 +490,76 @@ async def edit_admin_job(admin_job_id: int, request: Request,
         "job_title":    job.job_title,
         "description":  job.description
     }
+
+# ─── Job Suggestions ─────────────────────────────────────────────────────────
+@app.post("/suggestions")
+async def submit_suggestion(request: Request, db: Session = Depends(get_db)):
+    from sqlalchemy import text
+    body       = await request.json()
+    user_id    = body.get("user_id")
+    job_title  = body.get("job_title", "").strip()
+    reason     = body.get("reason", "").strip()
+
+    if not job_title:
+        raise HTTPException(400, "job_title is required")
+
+    # Store suggestion in its own table (created via migration on startup)
+    try:
+        db.execute(text("""
+            INSERT INTO job_suggestions (user_id, job_title, reason, status, created_at)
+            VALUES (:uid, :title, :reason, 'pending', NOW())
+        """), {"uid": user_id, "title": job_title, "reason": reason})
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, f"Could not save suggestion: {e}")
+
+    return {"status": "submitted", "job_title": job_title}
+
+
+@app.get("/admin/suggestions")
+def get_suggestions(db: Session = Depends(get_db)):
+    from sqlalchemy import text
+    try:
+        rows = db.execute(text("""
+            SELECT s.suggestion_id, s.job_title, s.reason, s.status, s.created_at,
+                   u.name as user_name, u.email as user_email
+            FROM job_suggestions s
+            LEFT JOIN users u ON u.user_id = s.user_id
+            ORDER BY s.created_at DESC
+        """)).fetchall()
+        return [
+            {
+                "suggestion_id": r[0],
+                "job_title":     r[1],
+                "reason":        r[2],
+                "status":        r[3],
+                "created_at":    r[4].isoformat() if r[4] else None,
+                "user_name":     r[5] or "Unknown",
+                "user_email":    r[6] or "",
+            }
+            for r in rows
+        ]
+    except Exception as e:
+        return []
+
+
+@app.patch("/admin/suggestions/{suggestion_id}")
+async def update_suggestion_status(suggestion_id: int, request: Request,
+                                    db: Session = Depends(get_db)):
+    from sqlalchemy import text
+    body   = await request.json()
+    status = body.get("status", "reviewed")
+    db.execute(text("UPDATE job_suggestions SET status = :s WHERE suggestion_id = :id"),
+               {"s": status, "id": suggestion_id})
+    db.commit()
+    return {"status": "updated"}
+
+
+@app.delete("/admin/suggestions/{suggestion_id}")
+def delete_suggestion(suggestion_id: int, db: Session = Depends(get_db)):
+    from sqlalchemy import text
+    db.execute(text("DELETE FROM job_suggestions WHERE suggestion_id = :id"),
+               {"id": suggestion_id})
+    db.commit()
+    return {"status": "deleted"}

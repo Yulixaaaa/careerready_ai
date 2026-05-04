@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Dashboard — CareerReady AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -20,7 +22,7 @@ body{font-family:'Outfit',sans-serif;background:var(--ink);color:var(--text);dis
 body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.35}
 h1,h2,h3,h4{font-family:'Cormorant Garamond',serif}
 .hidden{display:none!important}
- 
+
 /* ══ SIDEBAR ══ */
 .sidebar{
   width:230px;background:var(--ink2);
@@ -64,7 +66,7 @@ h1,h2,h3,h4{font-family:'Cormorant Garamond',serif}
   font-family:'Outfit',sans-serif;
 }
 .sb-logout:hover{background:rgba(240,96,122,.15)}
- 
+
 /* ══ MAIN ══ */
 .main{flex:1;overflow-y:auto;background:var(--ink);position:relative;z-index:1}
 .main-inner{padding:36px 40px;max-width:1200px}
@@ -73,7 +75,7 @@ h1,h2,h3,h4{font-family:'Cormorant Garamond',serif}
   font-size:2.4rem;font-weight:700;color:var(--cream);margin-bottom:4px;
 }
 .page-sub{color:var(--text3);font-size:.83rem;margin-bottom:32px;font-weight:300}
- 
+
 /* ══ STATS ROW ══ */
 .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
 .stat-card{
@@ -89,19 +91,19 @@ h1,h2,h3,h4{font-family:'Cormorant Garamond',serif}
 .stat-val{font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:700;color:var(--amber)}
 .stat-val.green{color:var(--success)}
 .stat-val.white{font-family:'Outfit',sans-serif;font-size:1.8rem;color:var(--text)}
- 
+
 /* ══ CARDS ══ */
 .card{background:var(--ink2);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:20px}
 .card-title{
   font-family:'Outfit',sans-serif;font-size:.92rem;font-weight:600;
   margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;
 }
- 
+
 /* ══ CHARTS ══ */
 .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
 .chart-card{background:var(--ink2);border:1px solid var(--border);border-radius:14px;padding:22px}
 .chart-card h3{font-family:'Outfit',sans-serif;font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:16px}
- 
+
 /* ══ TABLE ══ */
 .tbl-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:.83rem}
@@ -115,7 +117,7 @@ tr:hover td{background:rgba(255,255,255,.015);color:var(--text)}
 .badge{display:inline-block;padding:3px 12px;border-radius:100px;font-size:.7rem;font-weight:700;letter-spacing:.04em}
 .badge-online{background:rgba(52,217,146,.12);color:var(--success)}
 .badge-offline{background:rgba(240,96,122,.1);color:var(--danger)}
- 
+
 /* ══ BUTTONS ══ */
 .btn{
   padding:8px 18px;border-radius:100px;font-size:.8rem;
@@ -128,7 +130,7 @@ tr:hover td{background:rgba(255,255,255,.015);color:var(--text)}
 .btn-ghost:hover{color:var(--text)}
 .btn-danger{background:rgba(240,96,122,.12);color:var(--danger);border:1px solid rgba(240,96,122,.25)}
 .btn-danger:hover{background:rgba(240,96,122,.25)}
- 
+
 /* ══ JOB FORM ══ */
 .form-grid{display:grid;gap:14px}
 .field label{
@@ -161,7 +163,7 @@ tr:hover td{background:rgba(255,255,255,.015);color:var(--text)}
   color:var(--text);font-size:.84rem;font-family:'Outfit',sans-serif;
 }
 .q-input-row input:focus{outline:none;border-color:var(--amber)}
- 
+
 /* ══ JOBS GRID ══ */
 .jobs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
 .job-card{
@@ -178,7 +180,7 @@ tr:hover td{background:rgba(255,255,255,.015);color:var(--text)}
 .job-card-actions{display:flex;gap:6px;flex-wrap:wrap}
 .job-expand{margin-top:14px;display:none;border-top:1px solid var(--border);padding-top:14px}
 .job-expand.open{display:block}
- 
+
 /* ══ MODALS ══ */
 .modal-overlay{
   position:fixed;inset:0;background:rgba(0,0,0,.88);
@@ -198,25 +200,22 @@ tr:hover td{background:rgba(255,255,255,.015);color:var(--text)}
 }
 .modal-box .msub{color:var(--text3);font-size:.83rem;margin-bottom:22px;font-weight:300}
 .modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
- 
+
 /* ══ TAB ANIMATION ══ */
 .tab{animation:fadeIn .25s cubic-bezier(.4,0,.2,1)}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 </style>
-
 </head>
 <body>
 
 <script>
-  if (localStorage.getItem("isAdmin") !== "true") {
-    window.location.href = "/";
-  }
+  if(localStorage.getItem("isAdmin")!=="true"){window.location.href="/"}
 </script>
 
-<!-- ═══ SIDEBAR ═══ -->
+<!-- ══ SIDEBAR ══ -->
 <aside class="sidebar">
   <div class="sb-brand">
-    <div class="sb-brand-dot">🛡️</div>
+    <div class="sb-brand-mark">🛡️</div>
     Admin Panel
   </div>
   <nav class="sb-nav">
@@ -232,7 +231,12 @@ tr:hover td{background:rgba(255,255,255,.015);color:var(--text)}
     <button class="sb-item" id="btn-analytics" onclick="showTab('analytics')">
       <span class="icon">📈</span> Analytics
     </button>
+    <button class="sb-item" id="btn-suggestions" onclick="showTab('suggestions')">
+      <span class="icon">💡</span> Suggestions
+      <span id="suggest-badge" style="display:none;background:var(--amber);color:var(--ink);border-radius:100px;font-size:.65rem;font-weight:800;padding:1px 7px;margin-left:auto">0</span>
+    </button>
   </nav>
+  <div class="sb-spacer"></div>
   <div class="sb-footer">
     <button class="sb-logout" onclick="logout()">
       <span class="icon">🚪</span> Logout
@@ -240,45 +244,29 @@ tr:hover td{background:rgba(255,255,255,.015);color:var(--text)}
   </div>
 </aside>
 
-<!-- ═══ MAIN CONTENT ═══ -->
+<!-- ══ MAIN ══ -->
 <main class="main">
 <div class="main-inner">
 
-  <!-- ── DASHBOARD TAB ── -->
+  <!-- DASHBOARD -->
   <section id="tab-dashboard" class="tab">
-    <div class="page-title">Dashboard</div>
+    <div class="page-heading">Dashboard</div>
     <div class="page-sub">Live overview of the CareerReady AI platform</div>
 
     <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-icon">👥</div>
-        <div class="stat-label">Total Users</div>
-        <div class="stat-val white" id="dash-total-users">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">🟢</div>
-        <div class="stat-label">Online Now</div>
-        <div class="stat-val green" id="dash-online">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">🎤</div>
-        <div class="stat-label">Total Interviews</div>
-        <div class="stat-val" id="dash-interviews">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">🏆</div>
-        <div class="stat-label">Avg Score</div>
-        <div class="stat-val" id="dash-avg">—</div>
-      </div>
+      <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-label">Total Users</div><div class="stat-val white" id="dash-total-users">—</div></div>
+      <div class="stat-card"><div class="stat-icon">🟢</div><div class="stat-label">Online Now</div><div class="stat-val green" id="dash-online">—</div></div>
+      <div class="stat-card"><div class="stat-icon">🎤</div><div class="stat-label">Total Interviews</div><div class="stat-val" id="dash-interviews">—</div></div>
+      <div class="stat-card"><div class="stat-icon">🏆</div><div class="stat-label">Avg Score</div><div class="stat-val" id="dash-avg">—</div></div>
     </div>
 
     <div class="charts-row">
       <div class="chart-card">
-        <h3>📅 Monthly Interviews</h3>
+        <h3>Monthly Interviews</h3>
         <canvas id="chartDashInterviews" height="200"></canvas>
       </div>
       <div class="chart-card">
-        <h3>📊 Average Score per Month</h3>
+        <h3>Average Score per Month</h3>
         <canvas id="chartDashScores" height="200"></canvas>
       </div>
     </div>
@@ -297,11 +285,10 @@ tr:hover td{background:rgba(255,255,255,.015);color:var(--text)}
     </div>
   </section>
 
-  <!-- ── USERS TAB ── -->
+  <!-- USERS -->
   <section id="tab-users" class="tab hidden">
-    <div class="page-title">Users</div>
+    <div class="page-heading">Users</div>
     <div class="page-sub">All registered users and their activity</div>
-
     <div class="card">
       <div class="card-title">
         All Users
@@ -316,24 +303,18 @@ tr:hover td{background:rgba(255,255,255,.015);color:var(--text)}
     </div>
   </section>
 
-  <!-- ── JOBS TAB ── -->
+  <!-- JOBS -->
   <section id="tab-jobs" class="tab hidden">
-    <div class="page-title">Jobs & Questions</div>
+    <div class="page-heading">Jobs & Questions</div>
     <div class="page-sub">Create job positions and interview questions for users</div>
 
     <div class="card">
       <div class="card-title">➕ Create New Job</div>
       <div class="form-grid">
+        <div class="field"><label>Job Title *</label><input type="text" id="new-job-title" placeholder="e.g. Software Engineer"></div>
+        <div class="field"><label>Description</label><textarea id="new-job-desc" placeholder="Brief 2–3 sentence description of this role..."></textarea></div>
         <div class="field">
-          <label>Job Title *</label>
-          <input type="text" id="new-job-title" placeholder="e.g. Software Engineer">
-        </div>
-        <div class="field">
-          <label>Description</label>
-          <textarea id="new-job-desc" placeholder="Brief description of this role..."></textarea>
-        </div>
-        <div class="field">
-          <label>Questions (add at least 5)</label>
+          <label>Interview Questions</label>
           <div class="q-list" id="new-q-list"></div>
           <div class="q-input-row">
             <input type="text" id="new-q-input" placeholder="Type a question and press Add">
@@ -341,7 +322,7 @@ tr:hover td{background:rgba(255,255,255,.015);color:var(--text)}
           </div>
         </div>
         <div style="display:flex;gap:10px">
-          <button class="btn btn-gold" onclick="submitNewJob()">💾 Save Job</button>
+          <button class="btn btn-amber" onclick="submitNewJob()">💾 Save Job</button>
           <button class="btn btn-ghost" onclick="clearJobForm()">✕ Clear</button>
         </div>
       </div>
@@ -353,14 +334,14 @@ tr:hover td{background:rgba(255,255,255,.015);color:var(--text)}
         <button class="btn btn-ghost" onclick="loadJobs()">↻ Refresh</button>
       </div>
       <div class="jobs-grid" id="jobs-grid">
-        <div style="color:var(--text3);font-size:.85rem">Loading jobs...</div>
+        <div style="color:var(--text3);font-size:.83rem">Loading jobs...</div>
       </div>
     </div>
   </section>
 
-  <!-- ── ANALYTICS TAB ── -->
+  <!-- ANALYTICS -->
   <section id="tab-analytics" class="tab hidden">
-    <div class="page-title">Analytics</div>
+    <div class="page-heading">Analytics</div>
     <div class="page-sub">Platform performance and user engagement over time</div>
 
     <div class="stats-row">
@@ -371,30 +352,87 @@ tr:hover td{background:rgba(255,255,255,.015);color:var(--text)}
     </div>
 
     <div class="charts-row">
-      <div class="chart-card">
-        <h3>📅 Interviews per Month (This Year)</h3>
-        <canvas id="chartMonthlyInterviews" height="220"></canvas>
+      <div class="chart-card"><h3>Interviews per Month</h3><canvas id="chartMonthlyInterviews" height="220"></canvas></div>
+      <div class="chart-card"><h3>New Users per Month</h3><canvas id="chartMonthlyUsers" height="220"></canvas></div>
+    </div>
+    <div class="chart-card" style="margin-bottom:20px">
+      <h3>Average Score per Month</h3>
+      <canvas id="chartMonthlyScores" height="160"></canvas>
+    </div>
+  </section>
+
+  <!-- SUGGESTIONS -->
+  <section id="tab-suggestions" class="tab hidden">
+    <div class="page-heading">Job Suggestions</div>
+    <div class="page-sub">Review job role requests submitted by users</div>
+
+    <div class="card">
+      <div class="card-title">
+        💡 Pending Suggestions
+        <button class="btn btn-ghost" onclick="loadSuggestions()">↻ Refresh</button>
       </div>
-      <div class="chart-card">
-        <h3>👥 New Users per Month</h3>
-        <canvas id="chartMonthlyUsers" height="220"></canvas>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Job Suggested</th>
+              <th>Reason</th>
+              <th>From User</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="suggestions-table">
+            <tr><td colspan="7" style="color:var(--text3);text-align:center;padding:24px">Loading...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
-    <div class="chart-card" style="margin-bottom:20px">
-      <h3>📊 Average Score per Month</h3>
-      <canvas id="chartMonthlyScores" height="160"></canvas>
+    <!-- Create job from suggestion panel -->
+    <div class="card" id="create-from-suggest-panel" style="display:none">
+      <div class="card-title" style="color:var(--amber-l)">
+        ✨ Create Job from Suggestion
+      </div>
+      <p style="font-size:.82rem;color:var(--text3);margin-bottom:16px;font-weight:300">
+        Fill in the details below to create a job entry based on the user's suggestion.
+        Once saved, users will see it in their Choose Job list.
+      </p>
+      <div class="form-grid">
+        <div class="field">
+          <label>Job Title *</label>
+          <input type="text" id="sfrom-title" placeholder="Job title from suggestion">
+        </div>
+        <div class="field">
+          <label>Description <span style="color:var(--text3);font-weight:300;text-transform:none;letter-spacing:0">(2–3 sentences)</span></label>
+          <textarea id="sfrom-desc" rows="3" placeholder="Brief description of this role..."></textarea>
+        </div>
+        <div class="field">
+          <label>Interview Questions</label>
+          <div class="q-list" id="sfrom-q-list"></div>
+          <div class="q-input-row">
+            <input type="text" id="sfrom-q-input" placeholder="Type a question and press Add">
+            <button class="btn btn-ghost" onclick="addSfromQ()">+ Add</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="btn btn-amber" onclick="submitJobFromSuggestion()">💾 Create Job & Mark Done</button>
+          <button class="btn btn-ghost" onclick="closeSuggestPanel()">Cancel</button>
+        </div>
+      </div>
     </div>
   </section>
 
 </div>
 </main>
 
-<!-- ── Delete confirm modal ── -->
+<!-- DELETE MODAL -->
 <div id="delete-modal" class="modal-overlay hidden">
   <div class="modal-box">
-    <h3>⚠️ Confirm Delete</h3>
-    <p id="delete-msg">Are you sure?</p>
+    <h3>Confirm Delete</h3>
+    <p class="msub" id="delete-msg">Are you sure? This cannot be undone.</p>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeDeleteModal()">Cancel</button>
       <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
@@ -402,39 +440,36 @@ tr:hover td{background:rgba(255,255,255,.015);color:var(--text)}
   </div>
 </div>
 
-<!-- ── Add question to existing job modal ── -->
+<!-- ADD QUESTION MODAL -->
 <div id="addq-modal" class="modal-overlay hidden">
   <div class="modal-box">
-    <h3>➕ Add Question</h3>
-    <p id="addq-job-name">Job: —</p>
+    <h3>Add Question</h3>
+    <p class="msub" id="addq-job-name">Job: —</p>
     <div class="field">
       <label>Question Text</label>
       <textarea id="addq-text" placeholder="Type the interview question..." rows="3"></textarea>
     </div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeAddQModal()">Cancel</button>
-      <button class="btn btn-gold" onclick="submitAddQuestion()">Add Question</button>
+      <button class="btn btn-amber" onclick="submitAddQuestion()">Add Question</button>
     </div>
   </div>
 </div>
 
-<!-- ── Edit Job Description modal ── -->
+<!-- EDIT JOB MODAL -->
 <div id="editdesc-modal" class="modal-overlay hidden">
   <div class="modal-box">
-    <h3>✏️ Edit Job Description</h3>
-    <p id="editdesc-job-name" style="color:var(--gold-l);font-weight:600;margin-bottom:16px">Job: —</p>
+    <h3>Edit Job</h3>
+    <p class="msub" id="editdesc-job-name" style="color:var(--amber-l);font-weight:500">Job: —</p>
+    <div class="field"><label>Job Title</label><input type="text" id="editdesc-title" placeholder="Job title..."></div>
     <div class="field">
-      <label>Job Title</label>
-      <input type="text" id="editdesc-title" placeholder="Job title...">
+      <label>Description <span style="color:var(--text3);font-weight:300;text-transform:none;letter-spacing:0">(2–3 sentences)</span></label>
+      <textarea id="editdesc-text" rows="4" placeholder="Short description..."></textarea>
     </div>
-    <div class="field">
-      <label>Description <span style="color:var(--text3);font-weight:400">(keep it 2–3 sentences)</span></label>
-      <textarea id="editdesc-text" rows="4" placeholder="Short description of this role..."></textarea>
-    </div>
-    <div style="font-size:.75rem;color:var(--text3);margin-top:-6px;margin-bottom:8px" id="editdesc-charcount">0 characters</div>
+    <div style="font-size:.72rem;color:var(--text3);margin-top:-8px;margin-bottom:6px" id="editdesc-charcount">0 characters</div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeEditDescModal()">Cancel</button>
-      <button class="btn btn-gold" onclick="submitEditDesc()">💾 Save Changes</button>
+      <button class="btn btn-amber" onclick="submitEditDesc()">💾 Save Changes</button>
     </div>
   </div>
 </div>
@@ -442,548 +477,427 @@ tr:hover td{background:rgba(255,255,255,.015);color:var(--text)}
 <script>
 const API = window.location.origin;
 
-// Chart instances
-let chartDashInterviews = null;
-let chartDashScores     = null;
-let chartMonthly        = null;
-let chartUsers          = null;
-let chartScores         = null;
+let chartDashInterviews=null,chartDashScores=null,chartMonthly=null,chartUsers=null,chartScores=null;
+let deleteTarget=null,newJobQuestions=[],addQJobId=null,editDescJobId=null;
 
-// State for delete
-let deleteTarget = null;
-
-// State for new job questions
-let newJobQuestions = [];
-
-// State for add-question modal
-let addQJobId   = null;
-let addQJobName = "";
-
-// ═══════════════════════════════════════════
-// TAB SWITCHING
-// ═══════════════════════════════════════════
-function showTab(name) {
-  document.querySelectorAll(".tab").forEach(t => t.classList.add("hidden"));
-  document.querySelectorAll(".sb-item").forEach(b => b.classList.remove("active"));
-  document.getElementById("tab-" + name).classList.remove("hidden");
-  document.getElementById("btn-" + name).classList.add("active");
-
-  if (name === "dashboard") loadDashboard();
-  if (name === "users")     loadUsers();
-  if (name === "jobs")      loadJobs();
-  if (name === "analytics") loadAnalytics();
-}
-
-// ═══════════════════════════════════════════
-// CHART HELPERS
-// ═══════════════════════════════════════════
-const CHART_DEFAULTS = {
-  responsive: true,
-  plugins: { legend: { display: false } },
-  scales: {
-    x: { ticks: { color: "#6b7a99", font: { size: 11 } }, grid: { color: "rgba(255,255,255,.05)" } },
-    y: { ticks: { color: "#6b7a99", font: { size: 11 } }, grid: { color: "rgba(255,255,255,.05)" }, beginAtZero: true }
+// ── CHART DEFAULTS ──
+const CD={
+  responsive:true,
+  plugins:{legend:{display:false}},
+  scales:{
+    x:{ticks:{color:"#5A6480",font:{size:10}},grid:{color:"rgba(255,255,255,.04)"}},
+    y:{ticks:{color:"#5A6480",font:{size:10}},grid:{color:"rgba(255,255,255,.04)"},beginAtZero:true}
   }
 };
-
-function makeBarChart(canvasId, labels, data, color, instance) {
-  const ctx = document.getElementById(canvasId).getContext("2d");
-  if (instance) instance.destroy();
-  return new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{ data, backgroundColor: color + "99", borderColor: color, borderWidth: 2, borderRadius: 6 }]
-    },
-    options: { ...CHART_DEFAULTS }
-  });
+function barChart(id,labels,data,color,inst){
+  const ctx=document.getElementById(id).getContext("2d");
+  if(inst)inst.destroy();
+  return new Chart(ctx,{type:"bar",data:{labels,datasets:[{data,backgroundColor:color+"22",borderColor:color,borderWidth:2,borderRadius:6}]},options:{...CD}});
+}
+function lineChart(id,labels,data,color,inst){
+  const ctx=document.getElementById(id).getContext("2d");
+  if(inst)inst.destroy();
+  return new Chart(ctx,{type:"line",data:{labels,datasets:[{data,borderColor:color,backgroundColor:color+"18",borderWidth:2.5,pointBackgroundColor:color,pointRadius:4,tension:.4,fill:true}]},options:{...CD}});
 }
 
-function makeLineChart(canvasId, labels, data, color, instance) {
-  const ctx = document.getElementById(canvasId).getContext("2d");
-  if (instance) instance.destroy();
-  return new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [{
-        data, borderColor: color, backgroundColor: color + "22",
-        borderWidth: 2.5, pointBackgroundColor: color, pointRadius: 4, tension: 0.4, fill: true
-      }]
-    },
-    options: { ...CHART_DEFAULTS }
-  });
+// ── TAB ──
+function showTab(name){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.add("hidden"));
+  document.querySelectorAll(".sb-item").forEach(b=>b.classList.remove("active"));
+  document.getElementById("tab-"+name).classList.remove("hidden");
+  document.getElementById("btn-"+name).classList.add("active");
+  if(name==="dashboard")loadDashboard();
+  if(name==="users")loadUsers();
+  if(name==="jobs")loadJobs();
+  if(name==="analytics")loadAnalytics();
+  if(name==="suggestions")loadSuggestions();
 }
 
-// ═══════════════════════════════════════════
-// DASHBOARD
-// ═══════════════════════════════════════════
-async function loadDashboard() {
-  try {
-    const [anaRes, usersRes, monthRes] = await Promise.all([
-      fetch(API + "/admin/analytics"),
-      fetch(API + "/admin/users"),
-      fetch(API + "/admin/analytics/monthly")
-    ]);
-    const ana    = await anaRes.json();
-    const users  = await usersRes.json();
-    const monthly = await monthRes.json();
-
-    document.getElementById("dash-total-users").textContent = ana.total_users ?? users.length;
-    document.getElementById("dash-online").textContent      = ana.online_users ?? 0;
-    document.getElementById("dash-interviews").textContent  = ana.total_interviews ?? 0;
-    document.getElementById("dash-avg").textContent         = (ana.average_score ?? 0) + "%";
-
-    // Top users table
-    const sorted = [...users].sort((a, b) => (b.best_score || 0) - (a.best_score || 0));
-    document.getElementById("dash-top-users").innerHTML = sorted.slice(0, 10).map(u => `
+// ── DASHBOARD ──
+async function loadDashboard(){
+  try{
+    const [aR,uR,mR]=await Promise.all([fetch(API+"/admin/analytics"),fetch(API+"/admin/users"),fetch(API+"/admin/analytics/monthly")]);
+    const ana=await aR.json(),users=await uR.json(),monthly=await mR.json();
+    document.getElementById("dash-total-users").textContent=ana.total_users??users.length;
+    document.getElementById("dash-online").textContent=ana.online_users??0;
+    document.getElementById("dash-interviews").textContent=ana.total_interviews??0;
+    document.getElementById("dash-avg").textContent=(ana.average_score??0)+"%";
+    const sorted=[...users].sort((a,b)=>(b.best_score||0)-(a.best_score||0));
+    document.getElementById("dash-top-users").innerHTML=sorted.slice(0,10).map(u=>`
       <tr>
-        <td>${u.name}</td>
+        <td style="font-weight:600;color:var(--cream)">${u.name}</td>
         <td style="color:var(--text3)">${u.email}</td>
-        <td style="color:var(--gold);font-weight:700">${u.best_score != null ? u.best_score + "%" : "—"}</td>
-        <td>${u.interview_count ?? 0}</td>
-        <td>${u.is_online
-          ? "<span class='badge badge-online'>● Online</span>"
-          : "<span class='badge badge-offline'>○ Offline</span>"}</td>
-      </tr>`).join("") || "<tr><td colspan='5' style='color:var(--text3);text-align:center;padding:20px'>No users yet</td></tr>";
-
-    // Charts
-    const labels = monthly.map(m => m.month);
-    chartDashInterviews = makeBarChart("chartDashInterviews", labels, monthly.map(m => m.interviews), "#D4A017", chartDashInterviews);
-    chartDashScores     = makeLineChart("chartDashScores", labels, monthly.map(m => m.avg_score), "#2DD68C", chartDashScores);
-
-  } catch (err) {
-    console.error("Dashboard load error:", err);
-  }
+        <td style="color:var(--amber);font-weight:700">${u.best_score!=null?u.best_score+"%":"—"}</td>
+        <td>${u.interview_count??0}</td>
+        <td>${u.is_online?"<span class='badge badge-online'>● Online</span>":"<span class='badge badge-offline'>○ Offline</span>"}</td>
+      </tr>`).join("")||"<tr><td colspan='5' style='color:var(--text3);text-align:center;padding:24px'>No users yet</td></tr>";
+    const labels=monthly.map(m=>m.month);
+    // Check pending suggestions for badge
+    try{const sr=await fetch(API+'/admin/suggestions');const sugs=await sr.json();const pend=sugs.filter(s=>s.status==='pending').length;const badge=document.getElementById('suggest-badge');if(pend>0){badge.style.display='inline';badge.textContent=pend}else{badge.style.display='none'}}catch{}
+    chartDashInterviews=barChart("chartDashInterviews",labels,monthly.map(m=>m.interviews),"#E8A020",chartDashInterviews);
+    chartDashScores=lineChart("chartDashScores",labels,monthly.map(m=>m.avg_score),"#34D992",chartDashScores);
+  }catch(err){console.error(err)}
 }
 
-// ═══════════════════════════════════════════
-// USERS
-// ═══════════════════════════════════════════
-async function loadUsers() {
-  try {
-    const res   = await fetch(API + "/admin/users");
-    const users = await res.json();
-
-    document.getElementById("users-table").innerHTML = users.map(u => `
+// ── USERS ──
+async function loadUsers(){
+  try{
+    const res=await fetch(API+"/admin/users");const users=await res.json();
+    document.getElementById("users-table").innerHTML=users.map(u=>`
       <tr>
         <td style="color:var(--text3)">${u.user_id}</td>
-        <td style="font-weight:600">${u.name}</td>
+        <td style="font-weight:600;color:var(--cream)">${u.name}</td>
         <td style="color:var(--text3)">${u.email}</td>
-        <td>${u.interview_count ?? 0}</td>
-        <td style="color:var(--gold);font-weight:700">${u.best_score != null ? u.best_score + "%" : "—"}</td>
-        <td style="color:var(--text3);font-size:.78rem">${formatDate(u.last_active)}</td>
-        <td>${u.is_online
-          ? "<span class='badge badge-online'>● Online</span>"
-          : "<span class='badge badge-offline'>○ Offline</span>"}</td>
-        <td><button class="btn btn-danger" onclick="openDeleteUser(${u.user_id},'${u.name}')">🗑 Delete</button></td>
-      </tr>`).join("") || "<tr><td colspan='8' style='color:var(--text3);text-align:center;padding:20px'>No users found</td></tr>";
-  } catch (err) {
-    console.error("Load users error:", err);
-  }
+        <td>${u.interview_count??0}</td>
+        <td style="color:var(--amber);font-weight:700">${u.best_score!=null?u.best_score+"%":"—"}</td>
+        <td style="color:var(--text3);font-size:.75rem">${fmtDate(u.last_active)}</td>
+        <td>${u.is_online?"<span class='badge badge-online'>● Online</span>":"<span class='badge badge-offline'>○ Offline</span>"}</td>
+        <td><button class="btn btn-danger" style="padding:5px 14px;font-size:.75rem" onclick="openDeleteUser(${u.user_id},'${u.name.replace(/'/g,"\\'")}')">🗑 Delete</button></td>
+      </tr>`).join("")||"<tr><td colspan='8' style='color:var(--text3);text-align:center;padding:24px'>No users found</td></tr>";
+  }catch(err){console.error(err)}
 }
 
-function formatDate(iso) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+function fmtDate(iso){
+  if(!iso)return"—";
+  return new Date(iso).toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
 }
 
-// ═══════════════════════════════════════════
-// JOBS
-// ═══════════════════════════════════════════
-function addQuestionToNewJob() {
-  const input = document.getElementById("new-q-input");
-  const text  = input.value.trim();
-  if (!text) return;
-  newJobQuestions.push(text);
-  input.value = "";
-  renderNewJobQuestions();
+// ── JOBS ──
+function addQuestionToNewJob(){
+  const inp=document.getElementById("new-q-input");
+  const text=inp.value.trim();if(!text)return;
+  newJobQuestions.push(text);inp.value="";renderNewJobQ();
+}
+document.addEventListener("keypress",e=>{if(e.target.id==="new-q-input"&&e.key==="Enter"){e.preventDefault();addQuestionToNewJob()}});
+function renderNewJobQ(){
+  document.getElementById("new-q-list").innerHTML=newJobQuestions.map((q,i)=>`
+    <div class="q-item"><span>${i+1}. ${q}</span><button class="q-remove" onclick="removeNewQ(${i})">✕</button></div>`).join("");
+}
+function removeNewQ(i){newJobQuestions.splice(i,1);renderNewJobQ()}
+
+async function submitNewJob(){
+  const title=document.getElementById("new-job-title").value.trim();
+  const desc=document.getElementById("new-job-desc").value.trim();
+  if(!title){alert("Please enter a job title.");return}
+  if(newJobQuestions.length<1){alert("Please add at least 1 question.");return}
+  try{
+    const res=await fetch(API+"/admin/jobs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({job_title:title,description:desc,questions:newJobQuestions})});
+    const data=await res.json();
+    if(res.ok){alert(`✅ "${data.job_title}" created with ${data.question_count} questions!`);clearJobForm();loadJobs()}
+    else alert(data.detail||"Error creating job");
+  }catch(err){alert("Error: "+err.message)}
 }
 
-document.addEventListener("keypress", e => {
-  if (e.target.id === "new-q-input" && e.key === "Enter") {
-    e.preventDefault();
-    addQuestionToNewJob();
-  }
-});
-
-function renderNewJobQuestions() {
-  document.getElementById("new-q-list").innerHTML = newJobQuestions.map((q, i) => `
-    <div class="q-item">
-      <span>${i + 1}. ${q}</span>
-      <button class="q-remove" onclick="removeNewQ(${i})">✕</button>
-    </div>`).join("");
+function clearJobForm(){
+  document.getElementById("new-job-title").value="";
+  document.getElementById("new-job-desc").value="";
+  document.getElementById("new-q-input").value="";
+  newJobQuestions=[];renderNewJobQ();
 }
 
-function removeNewQ(i) {
-  newJobQuestions.splice(i, 1);
-  renderNewJobQuestions();
-}
+async function loadJobs(){
+  try{
+    const res=await fetch(API+"/admin/jobs");const jobs=await res.json();
+    if(!jobs.length){document.getElementById("jobs-grid").innerHTML="<div style='color:var(--text3);font-size:.83rem'>No jobs yet. Use the form above.</div>";return}
 
-async function submitNewJob() {
-  const title = document.getElementById("new-job-title").value.trim();
-  const desc  = document.getElementById("new-job-desc").value.trim();
-
-  if (!title) { alert("Please enter a job title."); return; }
-  if (newJobQuestions.length < 1) { alert("Please add at least 1 question."); return; }
-
-  try {
-    const res = await fetch(API + "/admin/jobs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ job_title: title, description: desc, questions: newJobQuestions })
-    });
-    const data = await res.json();
-    if (res.ok) {
-      alert(`✅ Job "${data.job_title}" created with ${data.question_count} questions!`);
-      clearJobForm();
-      loadJobs();
-    } else {
-      alert(data.detail || "Error creating job");
-    }
-  } catch (err) {
-    alert("Connection error: " + err.message);
-  }
-}
-
-function clearJobForm() {
-  document.getElementById("new-job-title").value = "";
-  document.getElementById("new-job-desc").value  = "";
-  document.getElementById("new-q-input").value   = "";
-  newJobQuestions = [];
-  renderNewJobQuestions();
-}
-
-async function loadJobs() {
-  try {
-    const res  = await fetch(API + "/admin/jobs");
-    const jobs = await res.json();
-
-    if (!jobs.length) {
-      document.getElementById("jobs-grid").innerHTML =
-        "<div style='color:var(--text3);font-size:.85rem'>No jobs created yet. Use the form above to add one.</div>";
-      return;
-    }
-
-    document.getElementById("jobs-grid").innerHTML = jobs.map(j => `
+    document.getElementById("jobs-grid").innerHTML=jobs.map(j=>`
       <div class="job-card">
         <div class="job-card-title">${j.job_title}</div>
-        <div class="job-card-desc">${j.description || 'No description'}</div>
+        <div class="job-card-desc">${j.description||"No description"}</div>
         <div class="job-card-meta">📝 ${j.question_count} question(s)</div>
-        <div class="job-card-actions" style="flex-wrap:wrap;gap:6px">
-          <button class="btn btn-ghost" style="font-size:.78rem;padding:6px 12px"
-            onclick="toggleJobQuestions(${j.admin_job_id})">
-            👁 Questions
-          </button>
-          <button class="btn btn-ghost" style="font-size:.78rem;padding:6px 12px;color:#F0BE3D;border-color:rgba(212,160,23,.4)"
-            onclick="openEditDescModal(${j.admin_job_id})">
-            ✏️ Edit
-          </button>
-          <button class="btn btn-ghost" style="font-size:.78rem;padding:6px 12px"
-            onclick="openAddQModal(${j.admin_job_id}, '${j.job_title.replace(/'/g,"\\'")}')">
-            ➕ Add Q
-          </button>
-          <button class="btn btn-danger" style="font-size:.78rem;padding:6px 12px"
-            onclick="openDeleteJob(${j.admin_job_id},'${j.job_title.replace(/'/g,"\\'")}')">
-            🗑
-          </button>
+        <div class="job-card-actions">
+          <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 12px"
+            onclick="toggleJobQ(${j.admin_job_id})">👁 Questions</button>
+          <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 12px;color:var(--amber-l);border-color:rgba(232,160,32,.3)"
+            onclick="openEditDescModal(${j.admin_job_id})">✏️ Edit</button>
+          <button class="btn btn-ghost" style="font-size:.75rem;padding:5px 12px"
+            onclick="openAddQModal(${j.admin_job_id},'${j.job_title.replace(/'/g,"\\'")}')">➕ Add Q</button>
+          <button class="btn btn-danger" style="font-size:.75rem;padding:5px 10px"
+            onclick="openDeleteJob(${j.admin_job_id},'${j.job_title.replace(/'/g,"\\'")}')">🗑</button>
         </div>
         <div class="job-expand" id="job-expand-${j.admin_job_id}">
-          ${j.questions.map(q => `
+          ${j.questions.map(q=>`
             <div class="q-item" style="margin-top:6px" id="qrow-${q.question_id}">
-              <span id="qspan-${q.question_id}" style="flex:1;font-size:.83rem">${q.question_text}</span>
-              <div style="display:flex;gap:4px">
-                <button style="background:rgba(212,160,23,.15);color:#F0BE3D;border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:12px"
+              <span id="qspan-${q.question_id}" style="flex:1;font-size:.8rem">${q.question_text}</span>
+              <div style="display:flex;gap:4px;flex-shrink:0">
+                <button style="background:rgba(232,160,32,.12);color:var(--amber-l);border:none;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:11px;font-family:'Outfit',sans-serif"
                   onclick="startEditQ(${q.question_id})">✏</button>
-                <button class="q-remove" onclick="deleteQuestion(${q.question_id}, ${j.admin_job_id})">✕</button>
+                <button class="q-remove" onclick="deleteQuestion(${q.question_id},${j.admin_job_id})">✕</button>
               </div>
             </div>
-            <div id="qedit-${q.question_id}" style="display:none;margin:4px 0">
+            <div id="qedit-${q.question_id}" style="display:none;margin:6px 0">
               <div style="display:flex;gap:6px">
                 <input id="qeinput-${q.question_id}" type="text"
-                  style="flex:1;padding:7px 10px;background:var(--bg4);border:1px solid var(--gold);border-radius:6px;color:var(--text);font-size:.83rem"
+                  style="flex:1;padding:7px 12px;background:var(--ink4);border:1px solid var(--amber);border-radius:8px;color:var(--text);font-size:.8rem;font-family:'Outfit',sans-serif"
                   value="${q.question_text.replace(/"/g,'&quot;')}">
-                <button class="btn btn-gold" style="font-size:.75rem;padding:6px 10px"
+                <button class="btn btn-amber" style="font-size:.73rem;padding:5px 10px"
                   onclick="saveEditQ(${q.question_id})">Save</button>
-                <button class="btn btn-ghost" style="font-size:.75rem;padding:6px 8px"
+                <button class="btn btn-ghost" style="font-size:.73rem;padding:5px 8px"
                   onclick="cancelEditQ(${q.question_id})">✕</button>
               </div>
-            </div>`).join('') || "<div style='color:var(--text3);font-size:.8rem;margin-top:8px'>No questions yet.</div>"}
+            </div>`).join("")||"<div style='color:var(--text3);font-size:.78rem;margin-top:8px;font-weight:300'>No questions yet.</div>"}
         </div>
       </div>`).join("");
-  
-  // Store jobs data for edit modal
-  window._jobsData = {};
-  jobs.forEach(j => { window._jobsData[j.admin_job_id] = j; });
-  } catch (err) {
-    console.error("Load jobs error:", err);
-  }
+
+    window._jobsData={};
+    jobs.forEach(j=>{window._jobsData[j.admin_job_id]=j});
+  }catch(err){console.error(err)}
 }
 
-function toggleJobQuestions(jobId) {
-  const el = document.getElementById("job-expand-" + jobId);
-  el.classList.toggle("open");
+function toggleJobQ(id){document.getElementById("job-expand-"+id).classList.toggle("open")}
+
+async function deleteQuestion(qId,jobId){
+  if(!confirm("Delete this question?"))return;
+  try{await fetch(API+"/admin/questions/"+qId,{method:"DELETE"});loadJobs()}
+  catch{alert("Error deleting question")}
 }
 
-async function deleteQuestion(questionId, jobId) {
-  if (!confirm("Delete this question?")) return;
-  try {
-    await fetch(API + "/admin/questions/" + questionId, { method: "DELETE" });
-    loadJobs();
-  } catch (err) {
-    alert("Error deleting question");
-  }
-}
-
-function openAddQModal(jobId, jobName) {
-  addQJobId   = jobId;
-  addQJobName = jobName;
-  document.getElementById("addq-job-name").textContent = "Job: " + jobName;
-  document.getElementById("addq-text").value = "";
+// ── ADD Q MODAL ──
+function openAddQModal(jobId,jobName){
+  addQJobId=jobId;
+  document.getElementById("addq-job-name").textContent="Job: "+jobName;
+  document.getElementById("addq-text").value="";
   document.getElementById("addq-modal").classList.remove("hidden");
 }
-
-function closeAddQModal() {
-  document.getElementById("addq-modal").classList.add("hidden");
+function closeAddQModal(){document.getElementById("addq-modal").classList.add("hidden")}
+async function submitAddQuestion(){
+  const text=document.getElementById("addq-text").value.trim();
+  if(!text){alert("Please type a question.");return}
+  try{
+    const res=await fetch(API+"/admin/jobs/"+addQJobId+"/questions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question_text:text})});
+    if(res.ok){closeAddQModal();loadJobs()}
+    else alert("Error adding question");
+  }catch{alert("Connection error")}
 }
 
-// ═══════════════════════════════════════════
-// EDIT JOB DESCRIPTION
-// ═══════════════════════════════════════════
-let editDescJobId = null;
-
-function openEditDescModal(jobId) {
-  editDescJobId = jobId;
-  const j = (window._jobsData || {})[jobId] || {};
-  const jobTitle = j.job_title || '';
-  const jobDesc  = j.description || '';
-  document.getElementById("editdesc-job-name").textContent = "Job: " + jobTitle;
-  document.getElementById("editdesc-title").value = jobTitle;
-  document.getElementById("editdesc-text").value = jobDesc;
-  document.getElementById("editdesc-charcount").textContent = jobDesc.length + " characters";
+// ── EDIT JOB MODAL ──
+function openEditDescModal(jobId){
+  editDescJobId=jobId;
+  const j=(window._jobsData||{})[jobId]||{};
+  document.getElementById("editdesc-job-name").textContent="Editing: "+( j.job_title||"");
+  document.getElementById("editdesc-title").value=j.job_title||"";
+  const desc=j.description||"";
+  document.getElementById("editdesc-text").value=desc;
+  document.getElementById("editdesc-charcount").textContent=desc.length+" characters";
   document.getElementById("editdesc-modal").classList.remove("hidden");
 }
-
-function closeEditDescModal() {
-  document.getElementById("editdesc-modal").classList.add("hidden");
-  editDescJobId = null;
-}
-
-// Live character counter
-document.addEventListener("input", e => {
-  if (e.target.id === "editdesc-text") {
-    const len = e.target.value.length;
-    const el  = document.getElementById("editdesc-charcount");
-    el.textContent = len + " characters";
-    el.style.color = len > 300 ? "var(--danger)" : "var(--text3)";
+function closeEditDescModal(){document.getElementById("editdesc-modal").classList.add("hidden");editDescJobId=null}
+document.addEventListener("input",e=>{
+  if(e.target.id==="editdesc-text"){
+    const len=e.target.value.length;
+    const el=document.getElementById("editdesc-charcount");
+    el.textContent=len+" characters";
+    el.style.color=len>300?"var(--danger)":"var(--text3)";
   }
 });
-
-async function submitEditDesc() {
-  const newTitle = document.getElementById("editdesc-title").value.trim();
-  const newDesc  = document.getElementById("editdesc-text").value.trim();
-  if (!newTitle) { alert("Job title cannot be empty."); return; }
-  if (!editDescJobId) return;
-
-  try {
-    const res = await fetch(API + "/admin/jobs/" + editDescJobId, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ job_title: newTitle, description: newDesc })
-    });
-    if (res.ok) {
-      closeEditDescModal();
-      loadJobs(); // refresh the grid
-    } else {
-      const data = await res.json();
-      alert(data.detail || "Error saving changes");
-    }
-  } catch (err) {
-    alert("Connection error: " + err.message);
-  }
+async function submitEditDesc(){
+  const newTitle=document.getElementById("editdesc-title").value.trim();
+  const newDesc=document.getElementById("editdesc-text").value.trim();
+  if(!newTitle){alert("Job title cannot be empty.");return}
+  if(!editDescJobId)return;
+  try{
+    const res=await fetch(API+"/admin/jobs/"+editDescJobId,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({job_title:newTitle,description:newDesc})});
+    if(res.ok){closeEditDescModal();loadJobs()}
+    else{const d=await res.json();alert(d.detail||"Error saving")}
+  }catch(err){alert("Error: "+err.message)}
 }
 
-async function submitAddQuestion() {
-  const text = document.getElementById("addq-text").value.trim();
-  if (!text) { alert("Please type a question."); return; }
-  try {
-    const res = await fetch(API + "/admin/jobs/" + addQJobId + "/questions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question_text: text })
-    });
-    if (res.ok) {
-      closeAddQModal();
-      loadJobs();
-    } else {
-      alert("Error adding question");
-    }
-  } catch (err) {
-    alert("Connection error");
-  }
+// ── INLINE Q EDIT ──
+function startEditQ(qId){
+  document.getElementById("qrow-"+qId).style.display="none";
+  document.getElementById("qedit-"+qId).style.display="block";
+  const inp=document.getElementById("qeinput-"+qId);
+  if(inp){inp.focus();inp.select()}
+}
+function cancelEditQ(qId){
+  document.getElementById("qrow-"+qId).style.display="flex";
+  document.getElementById("qedit-"+qId).style.display="none";
+}
+async function saveEditQ(qId){
+  const inp=document.getElementById("qeinput-"+qId);
+  const newText=inp?inp.value.trim():"";
+  if(!newText){alert("Question cannot be empty.");return}
+  try{
+    const res=await fetch(API+"/admin/questions/"+qId,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({question_text:newText})});
+    if(res.ok){document.getElementById("qspan-"+qId).textContent=newText;cancelEditQ(qId)}
+    else alert("Error saving question");
+  }catch(err){alert("Error: "+err.message)}
 }
 
-// ═══════════════════════════════════════════
-// ANALYTICS
-// ═══════════════════════════════════════════
-async function loadAnalytics() {
-  try {
-    const [anaRes, monthRes] = await Promise.all([
-      fetch(API + "/admin/analytics"),
-      fetch(API + "/admin/analytics/monthly")
-    ]);
-    const ana     = await anaRes.json();
-    const monthly = await monthRes.json();
-
-    document.getElementById("ana-total").textContent = ana.total_interviews ?? 0;
-    document.getElementById("ana-avg").textContent   = (ana.average_score ?? 0) + "%";
-    document.getElementById("ana-high").textContent  = (ana.highest_score ?? 0) + "%";
-    document.getElementById("ana-low").textContent   = (ana.lowest_score ?? 0) + "%";
-
-    const labels = monthly.map(m => m.month);
-    chartMonthly = makeBarChart("chartMonthlyInterviews", labels, monthly.map(m => m.interviews), "#D4A017", chartMonthly);
-    chartUsers   = makeBarChart("chartMonthlyUsers",      labels, monthly.map(m => m.new_users),  "#818CF8", chartUsers);
-    chartScores  = makeLineChart("chartMonthlyScores",    labels, monthly.map(m => m.avg_score),  "#2DD68C", chartScores);
-
-  } catch (err) {
-    console.error("Analytics error:", err);
-  }
+// ── ANALYTICS ──
+async function loadAnalytics(){
+  try{
+    const [aR,mR]=await Promise.all([fetch(API+"/admin/analytics"),fetch(API+"/admin/analytics/monthly")]);
+    const ana=await aR.json(),monthly=await mR.json();
+    document.getElementById("ana-total").textContent=ana.total_interviews??0;
+    document.getElementById("ana-avg").textContent=(ana.average_score??0)+"%";
+    document.getElementById("ana-high").textContent=(ana.highest_score??0)+"%";
+    document.getElementById("ana-low").textContent=(ana.lowest_score??0)+"%";
+    const labels=monthly.map(m=>m.month);
+    chartMonthly=barChart("chartMonthlyInterviews",labels,monthly.map(m=>m.interviews),"#E8A020",chartMonthly);
+    chartUsers=barChart("chartMonthlyUsers",labels,monthly.map(m=>m.new_users),"#818CF8",chartUsers);
+    chartScores=lineChart("chartMonthlyScores",labels,monthly.map(m=>m.avg_score),"#34D992",chartScores);
+  }catch(err){console.error(err)}
 }
 
-// ═══════════════════════════════════════════
-// DELETE MODAL
-// ═══════════════════════════════════════════
-function openDeleteUser(userId, name) {
-  deleteTarget = { type: "user", id: userId };
-  document.getElementById("delete-msg").textContent = `Delete user "${name}"? This cannot be undone.`;
+// ── DELETE MODAL ──
+function openDeleteUser(userId,name){
+  deleteTarget={type:"user",id:userId};
+  document.getElementById("delete-msg").textContent=`Delete user "${name}"? All their data will be removed.`;
   document.getElementById("delete-modal").classList.remove("hidden");
 }
-
-function openDeleteJob(jobId, title) {
-  deleteTarget = { type: "job", id: jobId };
-  document.getElementById("delete-msg").textContent = `Delete job "${title}" and all its questions? This cannot be undone.`;
+function openDeleteJob(jobId,title){
+  deleteTarget={type:"job",id:jobId};
+  document.getElementById("delete-msg").textContent=`Delete job "${title}" and all its questions?`;
   document.getElementById("delete-modal").classList.remove("hidden");
 }
-
-function closeDeleteModal() {
-  document.getElementById("delete-modal").classList.add("hidden");
-  deleteTarget = null;
-}
-
-async function confirmDelete() {
-  if (!deleteTarget) return;
-  try {
-    if (deleteTarget.type === "user") {
-      await fetch(API + "/admin/users/" + deleteTarget.id, { method: "DELETE" });
-      loadUsers();
-    } else if (deleteTarget.type === "job") {
-      await fetch(API + "/admin/jobs/" + deleteTarget.id, { method: "DELETE" });
-      loadJobs();
-    }
-  } catch (err) {
-    alert("Delete failed: " + err.message);
-  }
+function closeDeleteModal(){document.getElementById("delete-modal").classList.add("hidden");deleteTarget=null}
+async function confirmDelete(){
+  if(!deleteTarget)return;
+  try{
+    if(deleteTarget.type==="user"){await fetch(API+"/admin/users/"+deleteTarget.id,{method:"DELETE"});loadUsers()}
+    else if(deleteTarget.type==="job"){await fetch(API+"/admin/jobs/"+deleteTarget.id,{method:"DELETE"});loadJobs()}
+  }catch(err){alert("Delete failed: "+err.message)}
   closeDeleteModal();
 }
 
-// ═══════════════════════════════════════════
-// EDIT QUESTION INLINE
-// ═══════════════════════════════════════════
-function startEditQuestion(qId, currentText) {
-  // Hide the text row, show the edit input
-  document.getElementById("qtext-" + qId).parentElement.parentElement.style.display = "none";
-  const editDiv = document.getElementById("qedit-" + qId);
-  editDiv.style.display = "block";
-  const input = document.getElementById("qedit-input-" + qId);
-  input.value = currentText;
-  input.focus();
-  input.select();
+// ── AUTO REFRESH ──
+setInterval(()=>{
+  const a=document.querySelector(".sb-item.active");
+  if(a&&a.id==="btn-users")loadUsers();
+  if(a&&a.id==="btn-dashboard")loadDashboard();
+},30000);
+
+// ── LOGOUT ──
+function logout(){localStorage.clear();window.location.href="/"}
+
+// ── SUGGESTIONS ──
+let sfromQuestions = [];
+let activeSuggestionId = null;
+
+async function loadSuggestions(){
+  try{
+    const res = await fetch(API+"/admin/suggestions");
+    const suggestions = await res.json();
+
+    // Update badge
+    const pending = suggestions.filter(s=>s.status==="pending").length;
+    const badge = document.getElementById("suggest-badge");
+    if(pending > 0){badge.style.display="inline";badge.textContent=pending}
+    else{badge.style.display="none"}
+
+    document.getElementById("suggestions-table").innerHTML = suggestions.length ? suggestions.map(s=>`
+      <tr>
+        <td style="color:var(--text3)">${s.suggestion_id}</td>
+        <td style="font-weight:600;color:var(--cream)">${s.job_title}</td>
+        <td style="color:var(--text3);font-size:.78rem;max-width:240px">${s.reason||"—"}</td>
+        <td>
+          <div style="font-weight:500;font-size:.83rem">${s.user_name}</div>
+          <div style="color:var(--text3);font-size:.72rem">${s.user_email}</div>
+        </td>
+        <td style="color:var(--text3);font-size:.75rem">${fmtDate(s.created_at)}</td>
+        <td>${
+          s.status==="pending"  ? "<span class='badge-pending'>⏳ Pending</span>" :
+          s.status==="created"  ? "<span class='badge-created'>✅ Created</span>" :
+                                  "<span class='badge-reviewed'>👁 Reviewed</span>"
+        }</td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${s.status!=="created" ? `
+            <button class="btn btn-amber" style="font-size:.72rem;padding:4px 12px"
+              onclick="openCreateFromSuggestion(${s.suggestion_id},'${s.job_title.replace(/'/g,"\'")}')">
+              ✨ Create Job
+            </button>` : ""}
+            ${s.status==="pending" ? `
+            <button class="btn btn-ghost" style="font-size:.72rem;padding:4px 10px"
+              onclick="markSuggestionReviewed(${s.suggestion_id})">
+              👁 Mark Reviewed
+            </button>` : ""}
+            <button class="btn btn-danger" style="font-size:.72rem;padding:4px 10px"
+              onclick="deleteSuggestion(${s.suggestion_id})">🗑</button>
+          </div>
+        </td>
+      </tr>`).join("") :
+      "<tr><td colspan='7' style='color:var(--text3);text-align:center;padding:24px'>No suggestions yet</td></tr>";
+  }catch(err){console.error(err)}
 }
 
-function cancelEditQuestion(qId) {
-  document.getElementById("qitem-" + qId).style.display = "flex";
-  document.getElementById("qedit-" + qId).style.display = "none";
+function openCreateFromSuggestion(sugId, jobTitle){
+  activeSuggestionId = sugId;
+  sfromQuestions = [];
+  document.getElementById("sfrom-title").value = jobTitle;
+  document.getElementById("sfrom-desc").value = "";
+  document.getElementById("sfrom-q-input").value = "";
+  renderSfromQ();
+  document.getElementById("create-from-suggest-panel").style.display="block";
+  document.getElementById("create-from-suggest-panel").scrollIntoView({behavior:"smooth"});
 }
 
-async function saveEditQuestion(qId) {
-  const newText = document.getElementById("qedit-input-" + qId).value.trim();
-  if (!newText) { alert("Question cannot be empty."); return; }
+function closeSuggestPanel(){
+  document.getElementById("create-from-suggest-panel").style.display="none";
+  activeSuggestionId=null;sfromQuestions=[];
+}
 
-  try {
-    const res = await fetch(API + "/admin/questions/" + qId, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question_text: newText })
+function addSfromQ(){
+  const inp=document.getElementById("sfrom-q-input");
+  const text=inp.value.trim();if(!text)return;
+  sfromQuestions.push(text);inp.value="";renderSfromQ();
+}
+document.addEventListener("keypress",e=>{if(e.target.id==="sfrom-q-input"&&e.key==="Enter"){e.preventDefault();addSfromQ()}});
+function renderSfromQ(){
+  document.getElementById("sfrom-q-list").innerHTML=sfromQuestions.map((q,i)=>`
+    <div class="q-item"><span>${i+1}. ${q}</span><button class="q-remove" onclick="removeSfromQ(${i})">✕</button></div>`).join("");
+}
+function removeSfromQ(i){sfromQuestions.splice(i,1);renderSfromQ()}
+
+async function submitJobFromSuggestion(){
+  const title=document.getElementById("sfrom-title").value.trim();
+  const desc=document.getElementById("sfrom-desc").value.trim();
+  if(!title){alert("Please enter a job title.");return}
+  if(sfromQuestions.length<1){alert("Please add at least 1 question.");return}
+
+  try{
+    // Create the job
+    const res=await fetch(API+"/admin/jobs",{
+      method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({job_title:title,description:desc,questions:sfromQuestions})
     });
-    if (res.ok) {
-      // Update the text in place without full reload
-      document.getElementById("qtext-" + qId).textContent = newText;
-      cancelEditQuestion(qId);
-    } else {
-      alert("Error saving question");
+    const data=await res.json();
+    if(!res.ok){alert(data.detail||"Error creating job");return}
+
+    // Mark suggestion as created
+    if(activeSuggestionId){
+      await fetch(API+"/admin/suggestions/"+activeSuggestionId,{
+        method:"PATCH",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({status:"created"})
+      });
     }
-  } catch (err) {
-    alert("Connection error: " + err.message);
-  }
+
+    alert(`✅ Job "${data.job_title}" created with ${data.question_count} questions! Users can now see it.`);
+    closeSuggestPanel();
+    loadSuggestions();
+  }catch(err){alert("Error: "+err.message)}
 }
 
-// ═══════════════════════════════════════════
-// INLINE QUESTION EDIT
-// ═══════════════════════════════════════════
-function startEditQ(qId) {
-  document.getElementById('qrow-' + qId).style.display = 'none';
-  document.getElementById('qedit-' + qId).style.display = 'block';
-  const inp = document.getElementById('qeinput-' + qId);
-  if (inp) { inp.focus(); inp.select(); }
-}
-
-function cancelEditQ(qId) {
-  document.getElementById('qrow-' + qId).style.display = 'flex';
-  document.getElementById('qedit-' + qId).style.display = 'none';
-}
-
-async function saveEditQ(qId) {
-  const inp = document.getElementById('qeinput-' + qId);
-  const newText = inp ? inp.value.trim() : '';
-  if (!newText) { alert('Question cannot be empty.'); return; }
-  try {
-    const res = await fetch(API + '/admin/questions/' + qId, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ question_text: newText })
+async function markSuggestionReviewed(sugId){
+  try{
+    await fetch(API+"/admin/suggestions/"+sugId,{
+      method:"PATCH",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({status:"reviewed"})
     });
-    if (res.ok) {
-      document.getElementById('qspan-' + qId).textContent = newText;
-      cancelEditQ(qId);
-    } else {
-      alert('Error saving question');
-    }
-  } catch(err) {
-    alert('Connection error: ' + err.message);
-  }
+    loadSuggestions();
+  }catch{alert("Error updating suggestion")}
 }
 
-// ═══════════════════════════════════════════
-// LOGOUT
-// ═══════════════════════════════════════════
-function logout() {
-  localStorage.clear();
-  window.location.href = "/";
+async function deleteSuggestion(sugId){
+  if(!confirm("Delete this suggestion?"))return;
+  try{
+    await fetch(API+"/admin/suggestions/"+sugId,{method:"DELETE"});
+    loadSuggestions();
+  }catch{alert("Error deleting suggestion")}
 }
 
-// ═══════════════════════════════════════════
-// AUTO REFRESH USERS EVERY 30s
-// ═══════════════════════════════════════════
-setInterval(() => {
-  const active = document.querySelector(".sb-item.active");
-  if (active && active.id === "btn-users")     loadUsers();
-  if (active && active.id === "btn-dashboard") loadDashboard();
-}, 30000);
-
-// ═══════════════════════════════════════════
-// INIT
-// ═══════════════════════════════════════════
+// ── INIT ──
 showTab("dashboard");
 </script>
 </body>
