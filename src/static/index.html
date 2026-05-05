@@ -1032,712 +1032,246 @@ footer p{font-size:.78rem;color:var(--text3)}
 
 <script>
 const API = window.location.origin;
- 
-let user_id = null;
-let user_name = "";
-let job_id = null;
-let selectedAdminJobId = null;
-let interview_id = null;
-let questions = [];
-let answers = {};
-let lastResult = null;
-let interviewCount = 0;
-let availableAdminJobs = [];
- 
-// ==============================
-// INIT
-// ==============================
-window.onload = () => {
-  if (window.location.pathname.includes('/admin')) return;
-  if (localStorage.getItem("isLoggedIn") === "true") {
-    user_id   = localStorage.getItem("user_id");
-    user_name = localStorage.getItem("user_name");
-    interviewCount = parseInt(localStorage.getItem("interview_count_" + user_id) || "0");
+let user_id=null,user_name="",job_id=null,interview_id=null,questions=[],answers={},selectedAdminJobId=null;
+let chartScoreHistory=null,chartJobsAttempted=null;
+
+window.onload=()=>{
+  if(window.location.pathname.includes("/admin"))return;
+  if(localStorage.getItem("isLoggedIn")==="true"){
+    user_id=localStorage.getItem("user_id");
+    user_name=localStorage.getItem("user_name");
     enterApp();
   }
 };
- 
-// ==============================
-// SCROLL / MODAL HELPERS
-// ==============================
-function scrollToSection(id) { document.getElementById(id)?.scrollIntoView({ behavior:'smooth' }); }
- 
-function showLoginModal()    { closeModals(); document.getElementById("loginModal").classList.remove("hidden"); }
-function showRegisterModal() { closeModals(); document.getElementById("registerModal").classList.remove("hidden"); }
-function showAdminLogin()    { closeModals(); document.getElementById("adminModal").classList.remove("hidden"); }
-function showTermsModal()    { closeModals(); document.getElementById("termsViewModal").classList.remove("hidden"); }
-function closeModals() {
-  ["loginModal","registerModal","adminModal","termsViewModal"].forEach(id =>
-    document.getElementById(id)?.classList.add("hidden")
-  );
+
+function showLoginModal(){closeModals();document.getElementById("loginModal").classList.remove("hidden")}
+function showRegisterModal(){closeModals();document.getElementById("registerModal").classList.remove("hidden")}
+function showAdminLogin(){closeModals();document.getElementById("adminModal").classList.remove("hidden")}
+function closeModals(){["loginModal","adminModal","registerModal"].forEach(id=>document.getElementById(id).classList.add("hidden"))}
+function scrollToSection(id){document.getElementById(id)?.scrollIntoView({behavior:"smooth"})}
+
+async function register(){
+  const name=document.getElementById("reg_name").value.trim();
+  const email=document.getElementById("reg_email").value.trim();
+  const password=document.getElementById("reg_password").value;
+  const confirm=document.getElementById("reg_password_confirm").value;
+  if(!name||!email||!password||!confirm){alert("Please fill in all fields");return}
+  if(password!==confirm){alert("❌ Passwords do not match!");document.getElementById("reg_password_confirm").value="";return}
+  if(password.length<6){alert("Password must be at least 6 characters.");return}
+  try{
+    const res=await fetch(API+"/users/register",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:`name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`});
+    const data=await res.json();
+    if(res.ok){alert("Account created! Please log in.");showLoginModal()}
+    else alert(data.detail||"Registration failed");
+  }catch{alert("Connection error.")}
 }
- 
-function toggleRegisterBtn() {
-  const checked = document.getElementById("termsCheckbox").checked;
-  document.getElementById("registerBtn").disabled = !checked;
-}
- 
-// ==============================
-// REGISTER
-// ==============================
-async function register() {
-  const name     = document.getElementById("reg_name").value.trim();
-  const email    = document.getElementById("reg_email").value.trim();
-  const password = document.getElementById("reg_password").value;
- 
-  if (!name || !email || !password) { alert("Please fill in all fields"); return; }
-  if (password.length < 6) { alert("Password must be at least 6 characters"); return; }
-  if (!document.getElementById("termsCheckbox").checked) {
-    alert("You must agree to the Terms & Conditions"); return;
-  }
- 
-  try {
-    const res = await fetch(API + "/users/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `name=${encodeURIComponent(name)}&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
-    });
-    const data = await res.json();
-    if (res.ok && data.user_id) {
-      alert("✅ Account created! Please log in.");
-      showLoginModal();
-    } else {
-      alert(data.detail || "Registration failed");
-    }
-  } catch { alert("Connection error. Check your server."); }
-}
- 
-// ==============================
-// LOGIN
-// ==============================
-async function login() {
-  const email    = document.getElementById("login_email").value.trim();
-  const password = document.getElementById("login_password").value;
- 
-  if (!email || !password) { alert("Please enter email and password"); return; }
- 
-  try {
-    const res = await fetch(API + "/users/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
-    });
-    const data = await res.json();
-    if (res.ok && data.user_id) {
-      user_id   = data.user_id;
-      user_name = data.name;
-      localStorage.setItem("user_id",    user_id);
-      localStorage.setItem("user_name",  user_name);
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("isAdmin",    "false");
-      interviewCount = parseInt(localStorage.getItem("interview_count_" + user_id) || "0");
+
+async function login(){
+  const email=document.getElementById("login_email").value.trim();
+  const password=document.getElementById("login_password").value;
+  if(!email||!password){alert("Please enter email and password");return}
+  try{
+    const res=await fetch(API+"/users/login",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:`email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`});
+    const data=await res.json();
+    if(res.ok&&data.user_id){
+      user_id=data.user_id;user_name=data.name;
+      localStorage.setItem("user_id",user_id);localStorage.setItem("user_name",user_name);
+      localStorage.setItem("isLoggedIn","true");localStorage.setItem("isAdmin","false");
       enterApp();
-    } else {
-      alert(data.detail || "Login failed");
-    }
-  } catch { alert("Connection error. Check your server."); }
+    }else alert(data.detail||"Login failed");
+  }catch{alert("Connection error.")}
 }
- 
-// ==============================
-// ADMIN LOGIN
-// ==============================
-async function adminLogin() {
-  const user = document.getElementById("admin_user").value.trim();
-  const pass = document.getElementById("admin_pass").value;
- 
-  if (!user || !pass) { alert("Please enter admin credentials"); return; }
- 
-  try {
-    const formData = new URLSearchParams();
-    formData.append('email', user);
-    formData.append('password', pass);
- 
-    const res = await fetch(API + "/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: formData
-    });
- 
-    if (res.ok) {
-      localStorage.setItem("isAdmin",    "true");
-      localStorage.setItem("isLoggedIn", "false");
-      localStorage.removeItem("user_id");
-      localStorage.removeItem("user_name");
-      window.location.href = API + "/admin";
-    } else {
-      const data = await res.json();
-      alert(data.detail || "Invalid Admin Credentials");
-    }
-  } catch { alert("Admin portal connection error."); }
+
+async function adminLogin(){
+  const user=document.getElementById("admin_user").value.trim();
+  const pass=document.getElementById("admin_pass").value;
+  if(!user||!pass){alert("Please enter credentials");return}
+  try{
+    const res=await fetch(API+"/admin/login",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:new URLSearchParams({email:user,password:pass})});
+    if(res.ok){
+      localStorage.setItem("isAdmin","true");localStorage.setItem("isLoggedIn","false");
+      localStorage.removeItem("user_id");localStorage.removeItem("user_name");
+      window.location.href=API+"/admin";
+    }else{const data=await res.json();alert(data.detail||"Invalid credentials")}
+  }catch{alert("Connection error.")}
 }
- 
-// ==============================
-// ENTER APP
-// ==============================
-function enterApp() {
+
+function logout(){
+  const uid=localStorage.getItem("user_id");
+  if(uid)fetch(API+"/user/offline?user_id="+uid).catch(()=>{});
+  localStorage.clear();window.location.reload();
+}
+
+function enterApp(){
   closeModals();
   document.getElementById("landingPage").classList.add("hidden");
   document.getElementById("appLayout").classList.remove("hidden");
-  document.getElementById("userName").innerText    = user_name;
-  document.getElementById("welcomeName").innerText = user_name;
-  document.getElementById("userInitial").innerText = user_name.charAt(0).toUpperCase();
-  showSection('dashboard');
-  startHeartbeat();
-  loadUserHistory();
+  document.getElementById("userName").textContent=user_name;
+  document.getElementById("welcomeName").textContent=user_name;
+  document.getElementById("userInitial").textContent=user_name.charAt(0).toUpperCase();
+  showSection("dashboard");
+  setInterval(()=>{const uid=localStorage.getItem("user_id");if(uid)fetch(`${API}/user/ping?user_id=${uid}`).catch(()=>{})},20000);
+  loadDashboard();
 }
- 
-// ==============================
-// LOGOUT — persists data
-// ==============================
-function logout() {
-  // Mark offline but KEEP user data for next login
-  const uid = localStorage.getItem("user_id");
-  if (uid) {
-    fetch(`${API}/user/offline?user_id=${uid}`).catch(() => {});
-    // Save interview count
-    localStorage.setItem("interview_count_" + uid, interviewCount);
-  }
-  // Only clear session flags, NOT history data
-  localStorage.setItem("isLoggedIn", "false");
-  localStorage.removeItem("user_id");
-  localStorage.removeItem("user_name");
-  window.location.reload();
+
+function showSection(id){
+  ["dashboard","choosejob","interview","results","history"].forEach(s=>document.getElementById("section-"+s).classList.add("hidden"));
+  document.getElementById("section-"+id).classList.remove("hidden");
+  const nm={dashboard:"nav-dashboard",choosejob:"nav-choosejob",interview:"nav-interview",results:"nav-results",history:"nav-history"};
+  Object.values(nm).forEach(n=>document.getElementById(n)?.classList.remove("active"));
+  document.getElementById(nm[id])?.classList.add("active");
+  if(id==="choosejob")loadAvailableJobs();
+  if(id==="history")loadHistory();
+  if(id==="dashboard")loadDashboard();
 }
- 
-function startHeartbeat() {
-  setInterval(() => {
-    const sid = localStorage.getItem("user_id");
-    if (sid) fetch(`${API}/user/ping?user_id=${sid}`).catch(() => {});
-  }, 20000);
+
+async function loadDashboard(){
+  try{
+    const res=await fetch(API+"/user/history?user_id="+user_id);
+    const history=await res.json();
+    if(!history.length){updateDashboardEmpty();return}
+    const scores=history.filter(h=>h.score!=null).map(h=>h.score);
+    const best=scores.length?Math.max(...scores):0;
+    const avg=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):0;
+    const last=history[0];
+    document.getElementById("statInterviews").textContent=history.length;
+    document.getElementById("statBest").textContent=best?best+"%":"—";
+    document.getElementById("statAvg").textContent=avg?avg+"%":"—";
+    document.getElementById("statLastJob").textContent=last.job_title||"—";
+    const readiness=avg;
+    document.getElementById("readinessPct").textContent=readiness+"%";
+    document.getElementById("readinessBar").style.width=readiness+"%";
+    let cls="poor",msg="Keep practicing! Take more interviews to improve.";
+    if(readiness>=85){cls="excellent";msg="🎉 You're ready! High chance of success in a real interview."}
+    else if(readiness>=70){cls="good";msg="👍 Good progress! A few more sessions and you'll be fully ready."}
+    else if(readiness>=50){cls="average";msg="💪 Average — keep practicing, focus on detailed answers."}
+    const vEl=document.getElementById("readinessVerdict");vEl.className="readiness-verdict "+cls;vEl.textContent=msg;
+    const labels=history.slice().reverse().map((h,i)=>"#"+(i+1)+" "+h.job_title.slice(0,10));
+    const sData=history.slice().reverse().map(h=>h.score||0);
+    const ctx1=document.getElementById("chartScoreHistory").getContext("2d");
+    if(chartScoreHistory)chartScoreHistory.destroy();
+    chartScoreHistory=new Chart(ctx1,{type:"line",data:{labels,datasets:[{data:sData,borderColor:"#E8A020",backgroundColor:"rgba(232,160,32,.12)",borderWidth:2.5,pointBackgroundColor:"#E8A020",pointRadius:4,tension:.4,fill:true}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#5A6480",font:{size:10}},grid:{color:"rgba(255,255,255,.04)"}},y:{min:0,max:100,ticks:{color:"#5A6480"},grid:{color:"rgba(255,255,255,.04)"}}}}});
+    const jobCount={};history.forEach(h=>{jobCount[h.job_title]=(jobCount[h.job_title]||0)+1});
+    const ctx2=document.getElementById("chartJobsAttempted").getContext("2d");
+    if(chartJobsAttempted)chartJobsAttempted.destroy();
+    chartJobsAttempted=new Chart(ctx2,{type:"bar",data:{labels:Object.keys(jobCount),datasets:[{data:Object.values(jobCount),backgroundColor:"rgba(52,217,146,.2)",borderColor:"#34D992",borderWidth:2,borderRadius:6}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:"#5A6480",font:{size:10}},grid:{color:"rgba(255,255,255,.04)"}},y:{ticks:{color:"#5A6480"},grid:{color:"rgba(255,255,255,.04)"},beginAtZero:true}}}});
+  }catch(err){console.error(err)}
 }
- 
-// ==============================
-// SHOW SECTION
-// ==============================
-function showSection(id) {
-  ["dashboard","choosejob","interview","results","history"].forEach(s => {
-    document.getElementById("section-" + s).classList.add("hidden");
-  });
-  document.getElementById("section-" + id).classList.remove("hidden");
- 
-  const navMap = {
-    dashboard: "nav-dashboard", choosejob: "nav-choosejob",
-    interview: "nav-interview", results: "nav-results", history: "nav-history"
-  };
-  Object.values(navMap).forEach(nav => document.getElementById(nav)?.classList.remove("active"));
-  if (navMap[id]) document.getElementById(navMap[id])?.classList.add("active");
- 
-  if (id === "choosejob") loadAvailableJobs();
-  if (id === "history")   loadHistory();
+
+function updateDashboardEmpty(){
+  ["statInterviews","statBest","statAvg"].forEach(id=>document.getElementById(id).textContent="—");
+  document.getElementById("statLastJob").textContent="None yet";
+  document.getElementById("readinessPct").textContent="0%";
+  document.getElementById("readinessBar").style.width="0%";
+  const vEl=document.getElementById("readinessVerdict");vEl.className="readiness-verdict poor";vEl.textContent="Take your first interview to begin tracking your readiness!";
 }
- 
-// ==============================
-// LOAD AVAILABLE JOBS (from admin)
-// ==============================
-async function loadAvailableJobs() {
-  document.getElementById("jobsLoadingState").style.display = "block";
-  document.getElementById("adminJobsListUser").classList.add("hidden");
-  document.getElementById("noJobsState").classList.add("hidden");
-  document.getElementById("jobNotFoundBox").classList.remove("show");
-  document.getElementById("requestSuccessBox").classList.remove("show");
- 
-  try {
-    const res = await fetch(API + "/admin/jobs");
-    if (!res.ok) throw new Error();
-    const jobs = await res.json();
-    availableAdminJobs = jobs;
- 
-    document.getElementById("jobsLoadingState").style.display = "none";
- 
-    if (!jobs || !jobs.length) {
-      document.getElementById("noJobsState").classList.remove("hidden");
-      document.getElementById("jobSuggestionChips").innerHTML =
-        '<span style="font-size:0.82rem;color:var(--text-3)">No jobs available yet</span>';
-      return;
-    }
- 
-    // Render card list
-    const listEl = document.getElementById("adminJobsListUser");
-    listEl.innerHTML = jobs.map(j => `
-      <div class="admin-job-card" onclick="selectAdminJob(${j.admin_job_id}, '${j.job_title.replace(/'/g,"\\'")}', ${j.question_count ?? 0})" id="ajc-${j.admin_job_id}">
-        <div>
-          <h4>💼 ${j.job_title}</h4>
-          <p>${j.description || "AI-generated interview questions"}</p>
-        </div>
-        <span class="q-count">${j.question_count ?? 0} questions</span>
-      </div>`).join("");
-    listEl.classList.remove("hidden");
- 
-    // Suggestion chips
-    const chipsHtml = jobs.map(j =>
-      `<span class="chip" onclick="selectAdminJob(${j.admin_job_id}, '${j.job_title.replace(/'/g,"\\'")}', ${j.question_count ?? 0})">${j.job_title}</span>`
-    ).join("");
-    document.getElementById("jobSuggestionChips").innerHTML = chipsHtml;
- 
-    // Load my requests
-    loadMyRequests();
- 
-  } catch {
-    document.getElementById("jobsLoadingState").innerText = "Could not load jobs. Please try again.";
-  }
+
+async function loadAvailableJobs(){
+  try{
+    const res=await fetch(API+"/jobs/available");const jobs=await res.json();
+    const grid=document.getElementById("availableJobsGrid");
+    if(!jobs.length){grid.innerHTML="<div style='color:var(--text3);font-size:.85rem;grid-column:1/-1'>No jobs yet. Use custom title below.</div>";return}
+    grid.innerHTML=jobs.map(j=>`<div class="job-avail-card" id="job-card-${j.admin_job_id}" onclick="selectAdminJob(${j.admin_job_id},'${j.job_title.replace(/'/g,"\\'")}')"><div class="job-avail-title">💼 ${j.job_title}</div><div class="job-avail-desc">${j.description||"No description"}</div><div class="job-avail-meta">📝 ${j.question_count} questions</div></div>`).join("");
+  }catch{document.getElementById("availableJobsGrid").innerHTML="<div style='color:var(--text3);font-size:.85rem'>Error loading jobs.</div>"}
 }
- 
-function selectAdminJob(adminJobId, jobTitle, qCount) {
-  selectedAdminJobId = adminJobId;
-  document.getElementById("job_title").value = jobTitle;
- 
-  // Highlight selected card
-  document.querySelectorAll(".admin-job-card").forEach(c => c.classList.remove("selected"));
-  const card = document.getElementById("ajc-" + adminJobId);
-  if (card) card.classList.add("selected");
- 
-  // Hide error box if showing
-  document.getElementById("jobNotFoundBox").classList.remove("show");
-  document.getElementById("requestSuccessBox").classList.remove("show");
+
+function selectAdminJob(id,title){
+  selectedAdminJobId=id;
+  document.getElementById("job_title").value=title;
+  document.querySelectorAll(".job-avail-card").forEach(c=>c.classList.remove("selected"));
+  document.getElementById("job-card-"+id)?.classList.add("selected");
 }
- 
-// ==============================
-// JOB INPUT — detect unavailable
-// ==============================
-function onJobInput(value) {
-  const trimmed = value.trim().toLowerCase();
-  if (!trimmed) {
-    document.getElementById("jobNotFoundBox").classList.remove("show");
-    document.getElementById("requestSuccessBox").classList.remove("show");
-    selectedAdminJobId = null;
-    return;
-  }
- 
-  // Check if it matches an available admin job
-  const match = availableAdminJobs.find(j => j.job_title.toLowerCase() === trimmed);
-  if (match) {
-    selectedAdminJobId = match.admin_job_id;
-    document.getElementById("jobNotFoundBox").classList.remove("show");
-    document.getElementById("requestSuccessBox").classList.remove("show");
-  } else {
-    selectedAdminJobId = null;
-    document.getElementById("jobNotFoundBox").classList.add("show");
-    document.getElementById("unavailableJobName").innerText = value.trim();
-    document.getElementById("requestSuccessBox").classList.remove("show");
-  }
+
+async function startJobFlow(){
+  const jobTitle=document.getElementById("job_title").value.trim();
+  if(!jobTitle){alert("Please select a job or enter a title.");return}
+  try{
+    const body=`user_id=${user_id}&job_title=${encodeURIComponent(jobTitle)}`+(selectedAdminJobId?`&admin_job_id=${selectedAdminJobId}`:"");
+    const res=await fetch(API+"/jobs",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});
+    const data=await res.json();job_id=data.job_id;await loadInterview();
+  }catch(err){alert("Error: "+err.message)}
 }
- 
-// ==============================
-// PROCEED WITH JOB
-// ==============================
-async function proceedWithJob() {
-  const jobTitle = document.getElementById("job_title").value.trim();
-  if (!jobTitle) { alert("Please select or enter a job title"); return; }
- 
-  if (!selectedAdminJobId) {
-    // Job not available — show error + request box
-    document.getElementById("jobNotFoundBox").classList.add("show");
-    document.getElementById("unavailableJobName").innerText = jobTitle;
-    return;
-  }
- 
-  await createJob(jobTitle, selectedAdminJobId);
-}
- 
-// ==============================
-// CREATE JOB & LOAD INTERVIEW
-// ==============================
-async function createJob(jobTitle, adminJobId) {
-  try {
-    const res = await fetch(API + "/jobs", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `user_id=${user_id}&job_title=${encodeURIComponent(jobTitle)}&admin_job_id=${adminJobId || ""}`
-    });
-    const data = await res.json();
-    if (!data.job_id) { alert("Failed to create job session"); return; }
-    job_id = data.job_id;
-    document.getElementById("statJobGoal").innerText = jobTitle;
-    await loadInterview(adminJobId);
-  } catch { alert("Error creating job session. Check your server."); }
-}
- 
-async function loadInterview(adminJobId) {
-  try {
-    const res = await fetch(API + "/interviews", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: `user_id=${user_id}&job_id=${job_id}&admin_job_id=${adminJobId || ""}`
-    });
-    const data = await res.json();
- 
-    // Error handler: no questions for this job
-    if (!data.questions || !data.questions.length) {
-      alert("⚠️ No interview questions found for this job. Please request it or try another job.");
-      showSection("choosejob");
-      return;
-    }
- 
-    questions    = data.questions;
-    interview_id = data.interview_id;
-    answers      = {};
-    renderAllQuestions();
+
+async function loadInterview(){
+  try{
+    const res=await fetch(API+"/interviews",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:`user_id=${user_id}&job_id=${job_id}`});
+    const data=await res.json();questions=data.questions;interview_id=data.interview_id;answers={};selectedAdminJobId=null;
+    const box=document.getElementById("allQuestions");
+    document.getElementById("totalQNum").textContent=questions.length;
+    box.innerHTML=questions.map((q,i)=>`<div class="q-card"><span class="q-badge">Question ${i+1}</span><div class="q-text">${q}</div><textarea class="answer-input" rows="5" placeholder="Type your answer in English (min. 15 words for a good score)..." oninput="answers['q${i}']=this.value"></textarea></div>`).join("");
     showSection("interview");
-  } catch { alert("Error loading interview. Check your server."); }
+  }catch(err){alert("Error: "+err.message)}
 }
- 
-function renderAllQuestions() {
-  const box = document.getElementById("allQuestions");
-  box.innerHTML = "";
-  document.getElementById("totalQNum").innerText = questions.length;
-  questions.forEach((q, i) => {
-    box.innerHTML += `
-      <div class="interview-question-card">
-        <span class="q-badge">Question ${i+1} of ${questions.length}</span>
-        <div class="q-text">${q}</div>
-        <textarea class="answer-input" rows="4"
-          placeholder="Type your answer here. Be specific and relevant to the question..."
-          oninput="answers['q${i}']=this.value"></textarea>
-        <div class="answer-tip">💡 Focus on answering this specific question clearly and with examples.</div>
-      </div>`;
-  });
+
+async function submitAllAnswers(){
+  const fd=new FormData();fd.append("interview_id",interview_id);
+  for(let k in answers)fd.append(k,answers[k]);
+  try{
+    const res=await fetch(API+"/interviews/submit",{method:"POST",body:fd});
+    const data=await res.json();displayResults(data);loadDashboard();
+  }catch(err){alert("Error: "+err.message)}
 }
- 
-// ==============================
-// SUBMIT ANSWERS
-// ==============================
-async function submitAllAnswers() {
-  // Check all answers filled
-  const emptyCount = questions.filter((_, i) => !(answers[`q${i}`] || "").trim()).length;
-  if (emptyCount > 0) {
-    if (!confirm(`You have ${emptyCount} unanswered question(s). Submit anyway?`)) return;
-  }
- 
-  const btn = document.querySelector(".btn-submit-all");
-  btn.disabled = true;
-  btn.innerText = "Analyzing... ⏳";
- 
-  const formData = new FormData();
-  formData.append("interview_id", interview_id);
-  questions.forEach((_, i) => formData.append(`q${i}`, answers[`q${i}`] || ""));
- 
-  try {
-    const res = await fetch(API + "/interviews/submit", { method:"POST", body: formData });
-    const data = await res.json();
-    displayResults(data);
- 
-    // Save to localStorage history
-    saveLocalHistory(data);
- 
-    interviewCount++;
-    localStorage.setItem("interview_count_" + user_id, interviewCount);
-  } catch {
-    alert("Error submitting answers. Check your server.");
-  } finally {
-    btn.disabled = false;
-    btn.innerText = "Submit All Answers →";
-  }
-}
- 
-// ==============================
-// DISPLAY RESULTS
-// ==============================
-function displayResults(data) {
-  const score = Math.round(data.prediction || 0);
-  lastResult = { score, data, questions: [...questions], answers: {...answers} };
- 
-  document.getElementById("resultScore").innerText = score + "%";
-  document.getElementById("resultFeedback").innerText = data.feedback || "Good job!";
- 
-  let cls = "poor", verdict = "Needs Improvement 📚";
-  if (score >= 80) { cls = "excellent"; verdict = "Excellent! You're Interview Ready 🎉"; }
-  else if (score >= 65) { cls = "good"; verdict = "Good — Almost There 👍"; }
-  else if (score >= 50) { cls = "average"; verdict = "Average — Keep Practicing 💪"; }
- 
-  const circle = document.getElementById("resultCircle");
-  circle.className = `circle-score ${cls}`;
-  document.getElementById("resultVerdict").className = `result-verdict ${cls}`;
-  document.getElementById("resultVerdict").innerText  = verdict;
- 
-  // Performance bars
-  const comm = Math.round(data.communication   || 0);
-  const tech = Math.round(data.technical       || 0);
-  const prob = Math.round(data.problem_solving || 0);
-  const conf = Math.round(data.confidence      || 0);
-  document.getElementById("perfComm").style.width = comm + "%"; document.getElementById("perfCommPct").innerText = comm + "%";
-  document.getElementById("perfTech").style.width = tech + "%"; document.getElementById("perfTechPct").innerText = tech + "%";
-  document.getElementById("perfProb").style.width = prob + "%"; document.getElementById("perfProbPct").innerText = prob + "%";
-  document.getElementById("perfConf").style.width = conf + "%"; document.getElementById("perfConfPct").innerText = conf + "%";
- 
-  // Dashboard stats
-  document.getElementById("statInterviews").innerText = interviewCount;
-  const best = Math.max(score, parseInt(document.getElementById("statAvgScore").innerText) || 0);
-  document.getElementById("statAvgScore").innerText = best + "%";
-  document.getElementById("statSuccess").innerText  = verdict.split(" ")[0];
-  document.getElementById("progressPct").innerText  = score + "%";
-  document.getElementById("progressBar").style.width = score + "%";
- 
-  const msgEl = document.getElementById("progressMsg");
-  if (score >= 80)      msgEl.innerText = "🎉 You're ready for face-to-face interviews!";
-  else if (score >= 65) msgEl.innerText = "👍 Good progress! Keep practicing to reach 80%+.";
-  else if (score >= 50) msgEl.innerText = "💪 Needs improvement. Focus on answering questions directly.";
-  else                  msgEl.innerText = "📚 Failed — Significant improvement needed. Review your answers.";
- 
-  document.getElementById("pastAnswersCard").classList.add("hidden");
+
+function displayResults(data){
+  const score=Math.round(data.prediction||0);
+  document.getElementById("resultScore").textContent=score+"%";
+  document.getElementById("resultFeedback").textContent=data.feedback||"Analysis complete.";
+  let cls="poor",verdict="❌ Needs Improvement — Keep Practicing";
+  if(score>=85){cls="excellent";verdict="🎉 Excellent! You're Ready for a Real Interview!"}
+  else if(score>=70){cls="good";verdict="👍 Good — Almost Ready, Keep It Up!"}
+  else if(score>=50){cls="average";verdict="📚 Average — Keep Practicing!"}
+  document.getElementById("resultCircle").className="circle-score "+cls;
+  const vEl=document.getElementById("resultVerdict");vEl.className="result-verdict "+cls;vEl.textContent=verdict;
+  const sb=(fId,pId,v)=>{document.getElementById(fId).style.width=v+"%";document.getElementById(pId).textContent=v+"%"};
+  sb("perfComm","perfCommPct",data.communication||0);
+  sb("perfTech","perfTechPct",data.technical||0);
+  sb("perfProb","perfProbPct",data.problem_solving||0);
+  sb("perfConf","perfConfPct",data.confidence||0);
   showSection("results");
 }
- 
-// ==============================
-// TOGGLE PAST ANSWERS
-// ==============================
-function togglePastAnswers() {
-  const card = document.getElementById("pastAnswersCard");
-  if (card.classList.contains("hidden")) {
-    card.classList.remove("hidden");
-    renderPastAnswers();
-  } else {
-    card.classList.add("hidden");
-  }
-}
- 
-function renderPastAnswers() {
-  if (!lastResult) return;
-  const { questions: qs, answers: ans } = lastResult;
-  const box = document.getElementById("pastAnswersList");
-  box.innerHTML = qs.map((q, i) => `
-    <div class="answer-review-item">
-      <div class="answer-review-q">Q${i+1}: ${q}</div>
-      <div class="answer-review-a">${ans["q"+i] || "<em style='color:var(--text-3)'>No answer provided</em>"}</div>
-    </div>`).join("");
-}
- 
-// ==============================
-// LOCAL HISTORY PERSISTENCE
-// ==============================
-function saveLocalHistory(data) {
-  const key = "history_" + user_id;
-  const history = JSON.parse(localStorage.getItem(key) || "[]");
-  const jobTitle = document.getElementById("statJobGoal").innerText;
-  history.unshift({
-    date:       new Date().toISOString(),
-    job_title:  jobTitle,
-    score:      Math.round(data.prediction || 0),
-    feedback:   data.feedback || "",
-    communication:   Math.round(data.communication   || 0),
-    technical:       Math.round(data.technical       || 0),
-    problem_solving: Math.round(data.problem_solving || 0),
-    confidence:      Math.round(data.confidence      || 0),
-    questions:  [...questions],
-    answers:    {...answers}
-  });
-  localStorage.setItem(key, JSON.stringify(history.slice(0, 50)));
-  renderRecentSessions(history.slice(0, 3));
-}
- 
-function renderRecentSessions(sessions) {
-  const box = document.getElementById("recentSessions");
-  if (!sessions.length) { box.innerHTML = '<p style="font-size:0.82rem;color:var(--text-3)">No sessions yet</p>'; return; }
-  box.innerHTML = sessions.map(s => {
-    const cls = s.score >= 80 ? "excellent" : s.score >= 65 ? "good" : s.score >= 50 ? "average" : "poor";
-    const label = s.score >= 80 ? "Excellent" : s.score >= 65 ? "Good" : s.score >= 50 ? "Average" : "Poor";
-    return `<div class="history-row">
-      <div><div class="history-job">${s.job_title}</div><div class="history-date">${new Date(s.date).toLocaleDateString()}</div></div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="history-score">${s.score}%</span>
-        <span class="verdict-pill ${cls}">${label}</span>
-      </div>
-    </div>`;
-  }).join("");
-}
- 
-// ==============================
-// LOAD USER HISTORY (after login)
-// ==============================
-async function loadUserHistory() {
-  // Try server first, fallback to localStorage
-  try {
-    const res = await fetch(API + "/users/" + user_id + "/history");
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.length) {
-        interviewCount = data.length;
-        document.getElementById("statInterviews").innerText = interviewCount;
-        const best = Math.max(...data.map(d => d.score || 0));
-        document.getElementById("statAvgScore").innerText = best + "%";
-        document.getElementById("progressPct").innerText  = best + "%";
-        document.getElementById("progressBar").style.width = best + "%";
-        renderRecentSessions(data.slice(0, 3));
-        return;
-      }
-    }
-  } catch {}
- 
-  // Fallback to localStorage
-  const key = "history_" + user_id;
-  const history = JSON.parse(localStorage.getItem(key) || "[]");
-  if (history.length) {
-    interviewCount = history.length;
-    document.getElementById("statInterviews").innerText = interviewCount;
-    const best = Math.max(...history.map(h => h.score || 0));
-    document.getElementById("statAvgScore").innerText = best + "%";
-    document.getElementById("progressPct").innerText  = best + "%";
-    document.getElementById("progressBar").style.width = best + "%";
-    renderRecentSessions(history.slice(0, 3));
-  }
-}
- 
-// ==============================
-// HISTORY SECTION
-// ==============================
-async function loadHistory() {
-  const box = document.getElementById("historyList");
-  box.innerHTML = '<p style="color:var(--text-3);font-size:0.88rem">Loading...</p>';
- 
-  let history = [];
- 
-  try {
-    const res = await fetch(API + "/users/" + user_id + "/history");
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.length) history = data;
-    }
-  } catch {}
- 
-  // Merge with localStorage
-  const localKey = "history_" + user_id;
-  const local = JSON.parse(localStorage.getItem(localKey) || "[]");
-  if (!history.length && local.length) history = local;
- 
-  if (!history.length) {
-    box.innerHTML = '<p style="color:var(--text-3);font-size:0.88rem">No interview history yet. Take your first mock interview!</p>';
-    return;
-  }
- 
-  box.innerHTML = history.map((h, i) => {
-    const score = h.score || 0;
-    const cls   = score >= 80 ? "excellent" : score >= 65 ? "good" : score >= 50 ? "average" : "poor";
-    const label = score >= 80 ? "Excellent 🎉" : score >= 65 ? "Good 👍" : score >= 50 ? "Average 💪" : "Needs Improvement 📚";
-    const date  = h.date || h.created_at ? new Date(h.date || h.created_at).toLocaleDateString("en-US", {year:"numeric",month:"short",day:"numeric"}) : "—";
- 
-    const qs = h.questions || [];
-    const as = h.answers || {};
- 
-    return `
-      <div class="history-card">
-        <div class="history-card-header">
-          <div>
-            <h4>💼 ${h.job_title || "Unknown Job"}</h4>
-            <div style="font-size:0.78rem;color:var(--text-3);margin-top:2px">${date}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="font-family:'Plus Jakarta Sans',sans-serif;font-size:1.4rem;font-weight:800;color:var(--gold)">${score}%</div>
-            <span class="verdict-pill ${cls}">${label}</span>
-            <button class="history-expand-btn" onclick="toggleHistoryDetail(${i})" id="histbtn-${i}">▼ Answers</button>
-          </div>
-        </div>
- 
-        <!-- Performance bars -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
-          ${[["Comm.",h.communication||0],["Tech.",h.technical||0],["Problem",h.problem_solving||0],["Confidence",h.confidence||0]].map(([l,v])=>`
-            <div style="text-align:center">
-              <div style="font-size:0.72rem;color:var(--text-3)">${l}</div>
-              <div style="font-size:0.95rem;font-weight:700;color:var(--gold)">${v}%</div>
-            </div>`).join("")}
-        </div>
- 
-        ${h.feedback ? `<div style="background:var(--dark-3);border-radius:var(--radius-sm);padding:12px;font-size:0.82rem;color:var(--text-2);line-height:1.6;margin-bottom:10px">${h.feedback}</div>` : ""}
- 
-        <!-- Q&A Detail -->
-        <div class="hidden" id="histdetail-${i}">
-          ${qs.length ? qs.map((q, qi) => `
-            <div class="answer-review-item" style="margin-bottom:8px">
-              <div class="answer-review-q">Q${qi+1}: ${q}</div>
-              <div class="answer-review-a">${(typeof as === "object" ? (as["q"+qi] || as[q] || "") : "") || "<em style='color:var(--text-3)'>No answer</em>"}</div>
-            </div>`).join("") : '<p style="font-size:0.82rem;color:var(--text-3)">No questions recorded.</p>'}
-        </div>
-      </div>`;
-  }).join("");
-}
- 
-function toggleHistoryDetail(i) {
-  const d = document.getElementById("histdetail-" + i);
-  const b = document.getElementById("histbtn-" + i);
-  if (d.classList.contains("hidden")) {
-    d.classList.remove("hidden"); b.innerText = "▲ Hide";
-  } else {
-    d.classList.add("hidden"); b.innerText = "▼ Answers";
-  }
-}
- 
-// ==============================
-// JOB REQUEST SYSTEM
-// ==============================
-async function submitJobRequest() {
-  const jobTitle = document.getElementById("job_title").value.trim();
-  const reason   = document.getElementById("requestReason").value.trim();
- 
-  if (!jobTitle) { alert("Please type the job title you want to request"); return; }
- 
-  try {
-    const formData = new URLSearchParams();
-    formData.append("user_id",   user_id);
-    formData.append("job_title", jobTitle);
-    formData.append("reason",    reason);
- 
-    const res = await fetch(API + "/jobs/request", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: formData
-    });
- 
-    if (res.ok) {
-      document.getElementById("jobNotFoundBox").classList.remove("show");
-      document.getElementById("requestedJobName").innerText = jobTitle;
-      document.getElementById("requestSuccessBox").classList.add("show");
-      document.getElementById("requestReason").value = "";
-      loadMyRequests();
-    } else {
-      const d = await res.json();
-      // Handle duplicate request gracefully
-      if (d.detail && d.detail.includes("already")) {
-        alert("📋 You've already requested this job. Please wait for admin to create it.");
-      } else {
-        alert(d.detail || "Failed to submit request");
-      }
-    }
-  } catch { alert("Error submitting request. Check your server."); }
-}
- 
-async function loadMyRequests() {
-  try {
-    const res = await fetch(API + "/jobs/requests/" + user_id);
-    if (!res.ok) return;
-    const requests = await res.json();
- 
-    const section = document.getElementById("myRequestsSection");
-    const list    = document.getElementById("myRequestsList");
- 
-    if (!requests || !requests.length) {
-      section.style.display = "none";
-      return;
-    }
- 
-    section.style.display = "block";
-    list.innerHTML = requests.map(r => {
-      const statusColor = r.status === "pending" ? "#F59E0B" : r.status === "approved" ? "#2DD68C" : "#FF5E7D";
-      const statusLabel = r.status === "pending" ? "⏳ Pending" : r.status === "approved" ? "✅ Approved" : "❌ Declined";
-      return `
-        <div style="background:var(--dark-3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <div style="font-size:0.88rem;font-weight:700">💼 ${r.job_title}</div>
-            <div style="font-size:0.75rem;color:var(--text-3);margin-top:2px">${r.reason || "No reason provided"}</div>
-          </div>
-          <span style="font-size:0.78rem;font-weight:700;color:${statusColor}">${statusLabel}</span>
-        </div>`;
+
+async function loadHistory(){
+  try{
+    const res=await fetch(API+"/user/history?user_id="+user_id);const history=await res.json();
+    const list=document.getElementById("historyList");
+    if(!history.length){list.innerHTML="<div style='color:var(--text3);font-size:.9rem;text-align:center;padding:40px'>No history yet. Take your first mock interview!</div>";return}
+    list.innerHTML=history.map((h,idx)=>{
+      const score=h.score!=null?Math.round(h.score):0;
+      let cls="poor";if(score>=85)cls="excellent";else if(score>=70)cls="good";else if(score>=50)cls="average";
+      const dateStr=h.created_at?new Date(h.created_at).toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):"—";
+      const qas=h.questions.map(q=>`<div class="h-qa"><div class="h-q">Q: ${q}</div><div class="h-a">${h.answers[q]||"<em style='color:var(--text3)'>No answer</em>"}</div></div>`).join("");
+      return`<div class="history-card"><div class="history-card-header"><div><div class="history-job">💼 ${h.job_title}</div><div class="history-date">${dateStr}</div></div><span class="history-score-badge ${cls}">${score}%</span></div><div class="history-bars"><div class="h-bar-row"><span class="h-bar-label">Communication</span><div class="h-bar-track"><div class="h-bar-fill" style="width:${h.communication}%"></div></div><span>${Math.round(h.communication)}%</span></div><div class="h-bar-row"><span class="h-bar-label">Technical</span><div class="h-bar-track"><div class="h-bar-fill" style="width:${h.technical}%"></div></div><span>${Math.round(h.technical)}%</span></div><div class="h-bar-row"><span class="h-bar-label">Problem Solving</span><div class="h-bar-track"><div class="h-bar-fill" style="width:${h.problem_solving}%"></div></div><span>${Math.round(h.problem_solving)}%</span></div><div class="h-bar-row"><span class="h-bar-label">Confidence</span><div class="h-bar-track"><div class="h-bar-fill" style="width:${h.confidence}%"></div></div><span>${Math.round(h.confidence)}%</span></div></div>${h.feedback?`<div class="history-feedback">💬 ${h.feedback}</div>`:""}<button class="history-toggle" onclick="toggleHistoryAnswers(${idx})">📖 View My Answers</button><div class="history-answers" id="history-answers-${idx}">${qas}</div></div>`;
     }).join("");
-  } catch {}
+  }catch{document.getElementById("historyList").innerHTML="<div style='color:var(--danger);font-size:.85rem;text-align:center;padding:40px'>Error loading history.</div>"}
 }
- 
-// ==============================
-// TERMS MODAL from sidebar
-// ==============================
-function showTermsModal() {
-  document.getElementById("termsViewModal").classList.remove("hidden");
+
+async function submitSuggestion(){
+  const title = document.getElementById("suggest-title").value.trim();
+  const reason = document.getElementById("suggest-reason").value.trim();
+  if(!title){alert("Please enter a job title you'd like to suggest.");return}
+  try{
+    const res = await fetch(API+"/suggestions",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({user_id:user_id, job_title:title, reason:reason})
+    });
+    const data = await res.json();
+    if(res.ok){
+      document.getElementById("suggest-title").value="";
+      document.getElementById("suggest-reason").value="";
+      const suc = document.getElementById("suggest-success");
+      suc.style.display="block";
+      setTimeout(()=>suc.style.display="none",5000);
+    } else {
+      alert(data.detail||"Error submitting suggestion");
+    }
+  }catch{alert("Connection error.")}
+}
+
+function toggleHistoryAnswers(idx){
+  const el=document.getElementById("history-answers-"+idx);
+  const isOpen=el.classList.toggle("open");
+  el.previousElementSibling.textContent=isOpen?"🔼 Hide Answers":"📖 View My Answers";
 }
 </script>
 </body>

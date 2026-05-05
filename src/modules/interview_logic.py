@@ -1,122 +1,77 @@
 # src/modules/interview_logic.py
-"""
-Interview Logic
-===============
-Key changes:
-- get_random_questions() ONLY returns questions from admin-created jobs (DB)
-- If job_title has no admin job in DB → returns [] (empty list)
-- sample_questions.json is NO LONGER used as a fallback to prevent
-  unauthorized job titles from getting questions
-- Callers must check for empty list and show an error to the user
-"""
-
 import json
 import random
-from typing import List, Dict, Optional
+from typing import List, Dict
 from sqlalchemy.orm import Session
 from datetime import datetime
 
-from src.database.database import (
-    Interview, Prediction, Job, User,
-    AdminJob, AdminQuestion, JobRequest
-)
+from src.database.database import Interview, Prediction, Job, User, AdminJob, AdminQuestion
 
 
-# ─────────────────────────────────────────────────────────────
-# QUESTION FETCHING — STRICT: admin DB only, no JSON fallback
-# ─────────────────────────────────────────────────────────────
-
-def get_questions_for_admin_job(db: Session, admin_job_id: int) -> List[str]:
-    """
-    Fetch questions for a specific admin_job_id.
-    Returns [] if job not found or has no questions.
-    """
-    admin_job = db.query(AdminJob).filter(
-        AdminJob.admin_job_id == admin_job_id
-    ).first()
-
-    if not admin_job or not admin_job.questions:
-        return []
-
-    return [q.question_text for q in admin_job.questions]
-
-
-def get_questions_by_title(db: Session, job_title: str) -> List[str]:
-    """
-    Fetch questions by job title (case-insensitive match against admin_jobs).
-    Returns [] if no matching admin job exists — never falls back to JSON.
-    This is the ERROR HANDLER: if no match → [] → caller shows 'job not available'.
-    """
-    admin_job = db.query(AdminJob).filter(
-        AdminJob.job_title.ilike(job_title.strip())
-    ).first()
-
-    if not admin_job or not admin_job.questions:
-        return []
-
-    questions = [q.question_text for q in admin_job.questions]
-    random.shuffle(questions)
-    return questions
+def normalize_job_title(job_title: str) -> str:
+    if not job_title:
+        return "General"
+    title = job_title.strip().lower()
+    aliases = {
+        "software engineer": "Software Developer",
+        "software developer": "Software Developer",
+        "web developer": "Software Developer",
+        "programmer": "Software Developer",
+        "teacher": "Teacher", "instructor": "Teacher",
+        "nurse": "Nurse", "registered nurse": "Nurse",
+        "doctor": "Doctor", "physician": "Doctor",
+        "lawyer": "Lawyer", "attorney": "Lawyer",
+        "civil engineer": "Civil Engineer",
+        "electrical engineer": "Electrical Engineer",
+        "electrical engineering": "Electrical Engineer",
+    }
+    return aliases.get(title, job_title.strip())
 
 
-def get_random_questions(
-    job_title: str,
-    total: int = 5,
-    db: Session = None,
-    user_id: int = None,
-    admin_job_id: int = None
-) -> List[str]:
-    """
-    Main question getter.
-    Priority:
-      1. Specific admin_job_id (from user selecting a job card)
-      2. Title match in admin_jobs DB
-      3. Returns [] — NEVER falls back to sample_questions.json
-    """
-    if not db:
-        return []
+def get_random_questions(job_title: str, total: int = 5, db=None, user_id=None) -> List[str]:
+    # 1. Pull from AdminJob questions first
+    if db:
+        admin_job = db.query(AdminJob).filter(AdminJob.job_title.ilike(job_title)).first()
+        if admin_job and admin_job.questions:
+            db_qs = [q.question_text for q in admin_job.questions]
+            if len(db_qs) >= total:
+                random.shuffle(db_qs)
+                return db_qs[:total]
+            elif db_qs:
+                return db_qs  # return all if fewer than total
 
-    # Priority 1: by admin_job_id
-    if admin_job_id:
-        questions = get_questions_for_admin_job(db, admin_job_id)
-        if questions:
-            random.shuffle(questions)
-            return questions[:total]
+    # 2. Fallback to JSON
+    try:
+        with open("src/data/sample_questions.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception:
+        data = {}
 
-    # Priority 2: by title match
-    if job_title:
-        questions = get_questions_by_title(db, job_title)
-        if questions:
-            return questions[:total]
+    if not data:
+        return ["Tell me about yourself."]
 
-    # No match found → return empty (caller must handle this as an error)
-    return []
+    pool = data.get(normalize_job_title(job_title), []) or data.get("General", [])
+    if not pool:
+        return ["Tell me about yourself."]
 
+    used = set()
+    if db and user_id:
+        for i in db.query(Interview).filter(Interview.user_id == user_id).all():
+            try:
+                used.update(json.loads(i.questions))
+            except Exception:
+                pass
 
-def job_exists_in_admin_db(db: Session, job_title: str) -> bool:
-    """Check if admin has set up this job title."""
-    job = db.query(AdminJob).filter(
-        AdminJob.job_title.ilike(job_title.strip())
-    ).first()
-    return job is not None and bool(job.questions)
+    fresh = [q for q in pool if q not in used] or pool
+    random.shuffle(fresh)
+    return fresh[:total]
 
 
-# ─────────────────────────────────────────────────────────────
-# INTERVIEW CRUD
-# ─────────────────────────────────────────────────────────────
-
-def create_interview(
-    db: Session,
-    user_id: int,
-    job_id: int,
-    questions: List[str]
-) -> Interview:
+def create_interview(db: Session, user_id: int, job_id: int, questions: List[str]):
     interview = Interview(
-        user_id=user_id,
-        job_id=job_id,
+        user_id=user_id, job_id=job_id,
         questions=json.dumps(questions),
-        status="ongoing",
-        created_at=datetime.utcnow()
+        status="ongoing", created_at=datetime.utcnow()
     )
     db.add(interview)
     db.commit()
@@ -124,73 +79,48 @@ def create_interview(
     return interview
 
 
-def get_interview_by_id(db: Session, interview_id: int) -> Optional[Interview]:
-    return db.query(Interview).filter(
-        Interview.interview_id == interview_id
-    ).first()
+def get_interview_by_id(db: Session, interview_id: int):
+    return db.query(Interview).filter(Interview.interview_id == interview_id).first()
 
 
 def get_interview_questions(interview: Interview) -> List[str]:
-    if not interview or not interview.questions:
-        return []
     try:
-        return json.loads(interview.questions)
+        return json.loads(interview.questions) if interview and interview.questions else []
     except Exception:
         return []
 
 
-# ─────────────────────────────────────────────────────────────
-# SUBMIT & ANALYZE
-# ─────────────────────────────────────────────────────────────
-
-def submit_and_analyze_answers(
-    db: Session,
-    interview_id: int,
-    user_answers: Dict[str, str],
-    ai_model
-):
+def submit_and_analyze_answers(db: Session, interview_id: int, user_answers: Dict[str, str], ai_model):
     interview = get_interview_by_id(db, interview_id)
     if not interview:
         return None, {"error": "Interview not found"}
 
     questions = get_interview_questions(interview)
-    if not questions:
-        return None, {"error": "No questions found for this interview"}
-
-    # Build analysis input: pair each question with its answer
-    analysis_input  = []
+    analysis_input = []
     answers_to_save = {}
 
     for i, question in enumerate(questions):
-        answer_key = f"q{i}"
-        answer = (user_answers.get(answer_key) or "").strip()
-        if not answer:
-            answer = (user_answers.get(question) or "").strip()
+        answer = user_answers.get(f"q{i}", "").strip() or user_answers.get(question, "").strip()
         analysis_input.append({"question": question, "answer": answer})
         answers_to_save[question] = answer
 
     try:
-        result = ai_model.analyze_interview_answers(analysis_input)
-
-        score           = round(float(result.get("score",           0)), 2)
-        communication   = round(float(result.get("communication",   0)), 2)
-        technical       = round(float(result.get("technical",       0)), 2)
+        result          = ai_model.analyze_interview_answers(analysis_input)
+        score           = round(float(result.get("score", 0)), 2)
+        communication   = round(float(result.get("communication", 0)), 2)
+        technical       = round(float(result.get("technical", 0)), 2)
         problem_solving = round(float(result.get("problem_solving", 0)), 2)
-        confidence      = round(float(result.get("confidence",      0)), 2)
+        confidence      = round(float(result.get("confidence", 0)), 2)
         feedback        = result.get("feedback", "Analysis complete.")
 
-        interview.answers = json.dumps(answers_to_save)
-        interview.status  = "completed"
+        interview.answers  = json.dumps(answers_to_save)
+        interview.status   = "completed"
 
         prediction = Prediction(
-            interview_id=interview_id,
-            user_id=interview.user_id,
-            result=score,
-            feedback=feedback,
-            communication=communication,
-            technical=technical,
-            problem_solving=problem_solving,
-            confidence=confidence,
+            interview_id=interview_id, user_id=interview.user_id,
+            result=score, feedback=feedback,
+            communication=communication, technical=technical,
+            problem_solving=problem_solving, confidence=confidence,
             created_at=datetime.utcnow()
         )
         db.add(prediction)
@@ -203,226 +133,76 @@ def submit_and_analyze_answers(
         return None, {"error": str(e)}
 
 
-# ─────────────────────────────────────────────────────────────
-# USER HISTORY
-# ─────────────────────────────────────────────────────────────
-
-def get_user_history(db: Session, user_id: int) -> List[Dict]:
-    interviews = (
-        db.query(Interview)
-        .filter(Interview.user_id == user_id, Interview.status == "completed")
-        .order_by(Interview.created_at.desc())
-        .all()
-    )
-
+def get_user_history(db: Session, user_id: int):
+    # Include ALL interviews regardless of status so old records still show up
+    interviews = (db.query(Interview)
+                    .filter(Interview.user_id == user_id)
+                    .order_by(Interview.created_at.desc()).all())
     history = []
-    for interview in interviews:
-        pred = interview.predictions
-        job  = interview.job
-
+    for iv in interviews:
+        pred = iv.predictions
+        job  = iv.job
         try:
-            answers_dict = json.loads(interview.answers) if interview.answers else {}
+            answers_dict   = json.loads(iv.answers)   if iv.answers   else {}
         except Exception:
-            answers_dict = {}
-
+            answers_dict   = {}
         try:
-            questions_list = json.loads(interview.questions) if interview.questions else []
+            questions_list = json.loads(iv.questions) if iv.questions else []
         except Exception:
             questions_list = []
 
+        def _s(val):
+            try:
+                return round(float(val), 2) if val is not None else 0
+            except Exception:
+                return 0
+
         history.append({
-            "interview_id":    interview.interview_id,
+            "interview_id":    iv.interview_id,
             "job_title":       job.job_title if job else "Unknown",
-            "created_at":      interview.created_at.isoformat() if interview.created_at else None,
-            "score":           round(pred.result, 2) if pred and pred.result is not None else None,
-            "feedback":        pred.feedback if pred else None,
-            "communication":   round(pred.communication,   2) if pred else 0,
-            "technical":       round(pred.technical,       2) if pred else 0,
-            "problem_solving": round(pred.problem_solving, 2) if pred else 0,
-            "confidence":      round(pred.confidence,      2) if pred else 0,
+            "created_at":      iv.created_at.isoformat() if iv.created_at else None,
+            "score":           _s(pred.result)                               if pred else 0,
+            "feedback":        getattr(pred, "feedback", "") or ""           if pred else "",
+            "communication":   _s(getattr(pred, "communication", 0))        if pred else 0,
+            "technical":       _s(getattr(pred, "technical", 0))            if pred else 0,
+            "problem_solving": _s(getattr(pred, "problem_solving", 0))      if pred else 0,
+            "confidence":      _s(getattr(pred, "confidence", 0))           if pred else 0,
             "questions":       questions_list,
             "answers":         answers_dict,
         })
     return history
 
 
-# ─────────────────────────────────────────────────────────────
-# ADMIN — ALL RESULTS
-# ─────────────────────────────────────────────────────────────
-
-def get_all_interview_results(db: Session) -> List[Dict]:
-    predictions = db.query(Prediction).all()
-    results = []
-    for p in predictions:
-        interview = p.interview
-        user      = p.user
-        job_title = ""
-        if interview and interview.job:
-            job_title = interview.job.job_title
-
-        results.append({
-            "prediction_id": p.prediction_id,
-            "user_id":       p.user_id,
-            "user_name":     user.name if user else "Unknown",
-            "interview_id":  p.interview_id,
-            "job_title":     job_title,
-            "score":         round(p.result, 2) if p.result is not None else 0,
-            "date":          p.created_at.isoformat() if p.created_at else None
-        })
-    return results
+def get_all_interview_results(db: Session):
+    return [
+        {"prediction_id": p.prediction_id, "user_id": p.user_id,
+         "interview_id": p.interview_id,
+         "result": round(p.result, 2) if p.result else 0,
+         "created_at": p.created_at.isoformat() if p.created_at else None}
+        for p in db.query(Prediction).all()
+    ]
 
 
-# ─────────────────────────────────────────────────────────────
-# ADMIN QUESTION MANAGEMENT
-# ─────────────────────────────────────────────────────────────
+# -- stubs kept for admin_management compatibility --
+def add_question(db, question_data): pass
 
-def add_question(db: Session, question_data: Dict) -> Optional[AdminQuestion]:
-    """
-    Add a question to an existing admin job.
-    question_data = {"admin_job_id": int, "question_text": str}
-    """
-    admin_job_id  = question_data.get("admin_job_id")
-    question_text = (question_data.get("question_text") or "").strip()
-
-    if not admin_job_id or not question_text:
-        return None
-
-    q = AdminQuestion(
-        admin_job_id=admin_job_id,
-        question_text=question_text,
-        created_at=datetime.utcnow()
-    )
-    db.add(q)
-    db.commit()
-    db.refresh(q)
-    return q
-
-
-def get_questions(db: Session, job_title: str = None) -> List[Dict]:
+def get_questions(db, job_title=None):
     if job_title:
-        job = db.query(AdminJob).filter(
-            AdminJob.job_title.ilike(job_title)
-        ).first()
+        job = db.query(AdminJob).filter(AdminJob.job_title.ilike(job_title)).first()
         if job:
-            return [
-                {"id": q.question_id, "text": q.question_text}
-                for q in job.questions
-            ]
+            return [{"id": q.question_id, "text": q.question_text} for q in job.questions]
     return []
 
-
-def delete_question(db: Session, question_id: int) -> bool:
-    q = db.query(AdminQuestion).filter(
-        AdminQuestion.question_id == question_id
-    ).first()
+def delete_question(db, question_id):
+    q = db.query(AdminQuestion).filter(AdminQuestion.question_id == question_id).first()
     if q:
         db.delete(q)
         db.commit()
-        return True
-    return False
-
-
-def get_prediction_by_interview_id(
-    db: Session, interview_id: int
-) -> Optional[Prediction]:
-    return db.query(Prediction).filter(
-        Prediction.interview_id == interview_id
-    ).first()
-
-
-def monitor_system(db: Session) -> Dict:
-    return {
-        "users":      db.query(User).count(),
-        "jobs":       db.query(Job).count(),
-        "interviews": db.query(Interview).count()
-    }
-
-
-# ─────────────────────────────────────────────────────────────
-# JOB REQUEST MANAGEMENT
-# ─────────────────────────────────────────────────────────────
-
-def create_job_request(
-    db: Session,
-    user_id: int,
-    job_title: str,
-    reason: str = ""
-) -> Optional[JobRequest]:
-    """
-    User requests a new job that doesn't exist in admin_jobs yet.
-    Prevents duplicates per user.
-    """
-    existing = db.query(JobRequest).filter(
-        JobRequest.user_id == user_id,
-        JobRequest.job_title.ilike(job_title.strip())
-    ).first()
-
-    if existing:
-        return None  # Duplicate — caller should return 409
-
-    req = JobRequest(
-        user_id=user_id,
-        job_title=job_title.strip(),
-        reason=reason.strip(),
-        status="pending",
-        created_at=datetime.utcnow()
-    )
-    db.add(req)
-    db.commit()
-    db.refresh(req)
-    return req
-
-
-def get_job_requests_by_user(db: Session, user_id: int) -> List[Dict]:
-    reqs = (
-        db.query(JobRequest)
-        .filter(JobRequest.user_id == user_id)
-        .order_by(JobRequest.created_at.desc())
-        .all()
-    )
-    return [
-        {
-            "request_id": r.request_id,
-            "job_title":  r.job_title,
-            "reason":     r.reason,
-            "status":     r.status,
-            "created_at": r.created_at.isoformat() if r.created_at else None
-        }
-        for r in reqs
-    ]
-
-
-def get_all_job_requests(db: Session) -> List[Dict]:
-    """Admin: see all pending job requests."""
-    reqs = (
-        db.query(JobRequest)
-        .order_by(JobRequest.created_at.desc())
-        .all()
-    )
-    return [
-        {
-            "request_id": r.request_id,
-            "user_id":    r.user_id,
-            "user_name":  r.user.name if r.user else "Unknown",
-            "job_title":  r.job_title,
-            "reason":     r.reason,
-            "status":     r.status,
-            "created_at": r.created_at.isoformat() if r.created_at else None
-        }
-        for r in reqs
-    ]
-
-
-def update_job_request_status(
-    db: Session,
-    request_id: int,
-    status: str  # "approved" | "declined"
-) -> bool:
-    req = db.query(JobRequest).filter(
-        JobRequest.request_id == request_id
-    ).first()
-    if not req:
-        return False
-    req.status = status
-    db.commit()
     return True
+
+def get_prediction_by_interview_id(db, interview_id):
+    return db.query(Prediction).filter(Prediction.interview_id == interview_id).first()
+
+def monitor_system(db):
+    return {"users": db.query(User).count(), "jobs": db.query(Job).count(),
+            "interviews": db.query(Interview).count()}
