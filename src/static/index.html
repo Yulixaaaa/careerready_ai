@@ -1246,24 +1246,122 @@ function selectAdminJob(id,title){
 }
 
 async function startJobFlow(){
-  const jobTitle=document.getElementById("job_title").value.trim();
-  if(!jobTitle){alert("Please select a job or enter a title.");return}
+  const jobTitle = document.getElementById("job_title").value.trim();
+  if(!jobTitle){ alert("Please select a job or enter a title."); return; }
+
+  // Clear any previous error
+  const prevErr = document.getElementById("job-not-found-err");
+  if(prevErr) prevErr.remove();
+
+  // VALIDATION: Must match an admin job exactly — no custom titles allowed
+  let resolvedJobId = selectedAdminJobId;
+
+  if(!resolvedJobId){
+    // User typed a custom title — check if it matches any admin job
+    try{
+      const checkRes = await fetch(API + "/jobs/available");
+      const availJobs = await checkRes.json();
+      const match = availJobs.find(j =>
+        j.job_title.toLowerCase().trim() === jobTitle.toLowerCase().trim()
+      );
+      if(match){
+        resolvedJobId = match.admin_job_id;
+      } else {
+        // NO MATCH — show error, do NOT proceed to interview
+        showJobNotFoundError(jobTitle);
+        return;
+      }
+    } catch(err){
+      alert("Error checking available jobs: " + err.message);
+      return;
+    }
+  }
+
+  // Proceed only if we have a valid admin job
   try{
-    const body=`user_id=${user_id}&job_title=${encodeURIComponent(jobTitle)}`+(selectedAdminJobId?`&admin_job_id=${selectedAdminJobId}`:"");
-    const res=await fetch(API+"/jobs",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});
-    const data=await res.json();job_id=data.job_id;await loadInterview();
-  }catch(err){alert("Error: "+err.message)}
+    const body = `user_id=${user_id}&job_title=${encodeURIComponent(jobTitle)}&admin_job_id=${resolvedJobId}`;
+    const res  = await fetch(API+"/jobs",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body});
+    const data = await res.json();
+    job_id = data.job_id;
+    await loadInterview();
+  }catch(err){ alert("Error starting interview: "+err.message); }
+}
+
+function showJobNotFoundError(jobTitle){
+  // Remove old error if exists
+  const old = document.getElementById("job-not-found-err");
+  if(old) old.remove();
+
+  const errDiv = document.createElement("div");
+  errDiv.id = "job-not-found-err";
+  errDiv.style.cssText = [
+    "background:rgba(240,96,122,.1)",
+    "border:1px solid rgba(240,96,122,.35)",
+    "border-radius:12px",
+    "padding:18px 20px",
+    "margin-top:14px",
+    "font-size:.84rem",
+    "color:var(--danger)",
+    "line-height:1.7"
+  ].join(";");
+
+  errDiv.innerHTML = `
+    <div style="font-weight:700;font-size:.95rem;margin-bottom:6px">
+      ⚠️ "${jobTitle}" is not available yet
+    </div>
+    <div style="color:var(--text2)">
+      This job role has no interview questions set up by the admin.<br>
+      <strong style="color:var(--cream)">Please select a job from the list above</strong>,
+      or use the <strong style="color:var(--amber-l)">📨 Job Request form below</strong>
+      to ask the admin to add it for you.
+    </div>
+  `;
+
+  // Insert after the Start button
+  const btn = document.querySelector("#section-choosejob .btn-start");
+  if(btn) btn.insertAdjacentElement("afterend", errDiv);
+
+  errDiv.scrollIntoView({behavior:"smooth", block:"center"});
+
+  // Auto-fill the request form
+  const sugInput = document.getElementById("suggest-title");
+  if(sugInput) sugInput.value = jobTitle;
+
+  setTimeout(()=>{
+    document.getElementById("suggestionSection")?.scrollIntoView({behavior:"smooth", block:"center"});
+  }, 1200);
 }
 
 async function loadInterview(){
   try{
-    const res=await fetch(API+"/interviews",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:`user_id=${user_id}&job_id=${job_id}`});
-    const data=await res.json();questions=data.questions;interview_id=data.interview_id;answers={};selectedAdminJobId=null;
-    const box=document.getElementById("allQuestions");
-    document.getElementById("totalQNum").textContent=questions.length;
-    box.innerHTML=questions.map((q,i)=>`<div class="q-card"><span class="q-badge">Question ${i+1}</span><div class="q-text">${q}</div><textarea class="answer-input" rows="5" placeholder="Type your answer in English (min. 15 words for a good score)..." oninput="answers['q${i}']=this.value"></textarea></div>`).join("");
+    const res  = await fetch(API+"/interviews",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:`user_id=${user_id}&job_id=${job_id}`});
+    const data = await res.json();
+
+    // Block if no questions returned
+    if(!data.questions || data.questions.length === 0){
+      showSection("choosejob");
+      const old = document.getElementById("job-not-found-err");
+      if(old) old.remove();
+      const errDiv = document.createElement("div");
+      errDiv.id = "job-not-found-err";
+      errDiv.style.cssText = "background:rgba(240,96,122,.1);border:1px solid rgba(240,96,122,.35);border-radius:12px;padding:18px 20px;margin-top:14px;font-size:.84rem;color:var(--danger);line-height:1.7";
+      errDiv.innerHTML = `<div style="font-weight:700;font-size:.95rem;margin-bottom:6px">⚠️ No interview questions available for this job</div><div style="color:var(--text2)">The admin has not added any questions for this role yet. Please select a different job or use the <strong style="color:var(--amber-l)">📨 Job Request form below</strong> to ask the admin to add questions.</div>`;
+      const btn = document.querySelector("#section-choosejob .btn-start");
+      if(btn) btn.insertAdjacentElement("afterend", errDiv);
+      errDiv.scrollIntoView({behavior:"smooth", block:"center"});
+      return;
+    }
+
+    questions    = data.questions;
+    interview_id = data.interview_id;
+    answers      = {};
+    selectedAdminJobId = null;
+
+    const box = document.getElementById("allQuestions");
+    document.getElementById("totalQNum").textContent = questions.length;
+    box.innerHTML = questions.map((q,i)=>`<div class="q-card"><span class="q-badge">Question ${i+1}</span><div class="q-text">${q}</div><textarea class="answer-input" rows="5" placeholder="Type your answer in English (min. 10 words for a good score)..." oninput="answers['q${i}']=this.value"></textarea></div>`).join("");
     showSection("interview");
-  }catch(err){alert("Error: "+err.message)}
+  }catch(err){ alert("Error loading interview: "+err.message); }
 }
 
 async function submitAllAnswers(){
