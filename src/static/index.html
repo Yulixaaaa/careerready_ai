@@ -672,6 +672,28 @@ footer p{font-size:.78rem;color:var(--text3)}
 .badge-reviewed{background:rgba(52,217,146,.12);color:var(--success);padding:3px 12px;border-radius:100px;font-size:.7rem;font-weight:700}
 .badge-created{background:rgba(232,160,32,.12);color:var(--amber-l);padding:3px 12px;border-radius:100px;font-size:.7rem;font-weight:700}
 
+/* ── ANSWER LANGUAGE WARNING ── */
+.lang-warning{
+  display:none;
+  background:rgba(240,96,122,.1);
+  border:1px solid rgba(240,96,122,.35);
+  border-radius:8px;
+  padding:10px 14px;
+  font-size:.78rem;
+  color:var(--danger);
+  margin-top:6px;
+  line-height:1.55;
+  animation:warnIn .2s ease;
+}
+@keyframes warnIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.answer-input.lang-error{
+  border-color:var(--danger)!important;
+  box-shadow:0 0 0 3px rgba(240,96,122,.15)!important;
+}
+.answer-input.lang-ok{
+  border-color:var(--success)!important;
+}
+
 @media(max-width:960px){
   .kpi-grid{grid-template-columns:repeat(2,1fr)}
   .charts-row,.results-grid{grid-template-columns:1fr}
@@ -1359,14 +1381,123 @@ async function loadInterview(){
 
     const box = document.getElementById("allQuestions");
     document.getElementById("totalQNum").textContent = questions.length;
-    box.innerHTML = questions.map((q,i)=>`<div class="q-card"><span class="q-badge">Question ${i+1}</span><div class="q-text">${q}</div><textarea class="answer-input" rows="5" placeholder="Type your answer in English (min. 10 words for a good score)..." oninput="answers['q${i}']=this.value"></textarea></div>`).join("");
+    box.innerHTML = questions.map((q,i)=>`
+      <div class="q-card">
+        <span class="q-badge">Question ${i+1}</span>
+        <div class="q-text">${q}</div>
+        <textarea class="answer-input" rows="5" id="ans-${i}"
+          placeholder="Type your answer in English (minimum 10 words)..."
+          oninput="handleAnswerInput(${i}, this)"></textarea>
+        <div class="lang-warning" id="lang-warn-${i}">
+          ⚠️ <strong>Please answer in English only.</strong>
+          Bisaya and Tagalog answers are not accepted in this mock interview.
+          Your answer will receive a score of 0 if submitted in a non-English language.
+        </div>
+      </div>`).join("");
     showSection("interview");
   }catch(err){ alert("Error loading interview: "+err.message); }
 }
 
+// ── CLIENT-SIDE LANGUAGE DETECTION ──
+const BISAYA = new Set([
+  "unsa","asa","kanus","nganong","unsay","giunsa","ngano","mao",
+  "dili","naa","nato","nimo","niya","kita","sila","kami","nako",
+  "ikaw","siya","ako","gyud","kaayo","bitaw","nga","og","ni","mo",
+  "ko","ta","mi","kanimo","kaniya","atong","inyong","ilang","among",
+  "imong","iyang","atoa","ninyo","nila","kanato","kaninyo","gibuhat",
+  "buhaton","buhat","adto","diri","dinhi","diha","ingon","karon",
+  "gahapon","ugma","tinuod","dako","gamay","daghan","gusto","kinahanglan",
+  "mahimo","sulti","maayo","salamat","palihug","pasensya","naghuna",
+  "basta","man","ba","ra","lang","pod","pud","kay","jud","gud","sad",
+  "lagi","grabe","sige","oi","sus","ay","uy","aw","ge","mao","wala"
+]);
+
+const TAGALOG = new Set([
+  "ano","saan","kailan","bakit","paano","magkano","sino","ilan",
+  "hindi","meron","nandito","nandoon","nandyan","tayo","kayo",
+  "sila","kami","ako","ikaw","siya","namin","natin","ninyo","nila",
+  "niya","mo","ko","ba","na","pa","nga","lang","yung","ang","ng",
+  "sa","ni","kay","para","pero","kaya","dahil","kung","habang",
+  "ito","iyon","iyan","dito","doon","dyan","mayroon","mayroong",
+  "gusto","kailangan","pwede","maaari","dapat","sige","talaga",
+  "sobra","grabe","naman","palagi","madalas","minsan","lagi",
+  "lahat","ibang","iba","tama","mali","mabuti","masama","maganda",
+  "pangalan","trabaho","pamilya","bahay","pagkain","tubig","oras",
+  "araw","gabi","umaga","hapon","ngayon","bukas","kahapon","oo",
+  "hinde","ayaw","ibig","nais","ayos","sana","siguro","baka",
+  "halos","medyo","napaka","sobrang","talagang","kanila","kanino",
+  "kanyang","aking","aming","inyong","kanilang","ating","narito",
+  "naroon","nariyan","opo","oho","mahal","sama","kasama","wala"
+]);
+
+function detectLanguage(text){
+  if(!text || text.trim().length === 0) return "empty";
+  const words = text.toLowerCase().replace(/[^a-z\s]/g," ").split(/\s+/).filter(w=>w.length>1);
+  const bisayaHits  = words.filter(w=>BISAYA.has(w)).length;
+  const tagalogHits = words.filter(w=>TAGALOG.has(w)).length;
+  if(bisayaHits>=2) return "bisaya";
+  if(tagalogHits>=2) return "tagalog";
+  if(bisayaHits+tagalogHits>=3) return "non-english";
+  return "english";
+}
+
+function handleAnswerInput(idx, textarea){
+  const text   = textarea.value;
+  answers["q"+idx] = text;
+  const warn   = document.getElementById("lang-warn-"+idx);
+  const lang   = detectLanguage(text);
+
+  if(lang !== "english" && lang !== "empty"){
+    // Show warning, mark textarea red
+    textarea.classList.add("lang-error");
+    textarea.classList.remove("lang-ok");
+    if(warn) warn.style.display = "block";
+    // Clear the invalid answer so it won't be submitted
+    answers["q"+idx] = "";
+  } else {
+    textarea.classList.remove("lang-error");
+    if(text.trim().length > 0) textarea.classList.add("lang-ok");
+    else textarea.classList.remove("lang-ok");
+    if(warn) warn.style.display = "none";
+    answers["q"+idx] = text;
+  }
+}
+
 async function submitAllAnswers(){
-  const fd=new FormData();fd.append("interview_id",interview_id);
-  for(let k in answers)fd.append(k,answers[k]);
+  // Check for any visible language warnings before submitting
+  const warnings = document.querySelectorAll(".lang-warning[style*='block']");
+  const erroredAnswers = document.querySelectorAll(".answer-input.lang-error");
+
+  if(warnings.length > 0 || erroredAnswers.length > 0){
+    alert("⚠️ Please answer ALL questions in English before submitting.\n\nBisaya and Tagalog answers are not accepted in this mock interview.");
+    // Scroll to first error
+    erroredAnswers[0]?.scrollIntoView({behavior:"smooth", block:"center"});
+    return;
+  }
+
+  // Also do a final check on all textareas
+  let hasNonEnglish = false;
+  questions.forEach((q,i)=>{
+    const ta   = document.getElementById("ans-"+i);
+    const text = ta ? ta.value.trim() : "";
+    if(text && detectLanguage(text) !== "english"){
+      hasNonEnglish = true;
+      const warn = document.getElementById("lang-warn-"+i);
+      if(ta)   ta.classList.add("lang-error");
+      if(warn) warn.style.display="block";
+      answers["q"+i] = "";
+    }
+  });
+
+  if(hasNonEnglish){
+    alert("⚠️ Some answers were detected as non-English and have been cleared.\nPlease re-answer those questions in English.");
+    document.querySelector(".lang-error")?.scrollIntoView({behavior:"smooth", block:"center"});
+    return;
+  }
+
+  const fd=new FormData();
+  fd.append("interview_id",interview_id);
+  for(let k in answers) fd.append(k, answers[k]);
   try{
     const res=await fetch(API+"/interviews/submit",{method:"POST",body:fd});
     const data=await res.json();displayResults(data);loadDashboard();

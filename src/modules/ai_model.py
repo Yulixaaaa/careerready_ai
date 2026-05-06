@@ -151,20 +151,86 @@ class AIModel:
         return 15
 
     def _is_english(self, text: str) -> bool:
+        """
+        Strict English detection. Blocks Bisaya and Tagalog answers.
+        """
+        if not text or not text.strip():
+            return False
+
+        t = text.lower()
+
+        # ── Bisaya blocklist ──
+        bisaya_words = {
+            "unsa","asa","kanus","nganong","unsay","giunsa","ngano","mao",
+            "dili","wala","naa","nato","nimo","niya","kita","sila","kami",
+            "nako","ikaw","siya","ako","gyud","kaayo","bitaw","ug","nga",
+            "og","ni","mo","ko","ta","mi","kanimo","kaniya","atong","inyong",
+            "ilang","among","imong","iyang","atoa","ninyo","nila","kanato",
+            "kaninyo","gibuhat","buhaton","buhat","adto","diri","dinhi",
+            "diha","ingon","pero","kung","karon","gahapon","ugma","tinuod",
+            "dako","gamay","daghan","gusto","kinahanglan","pwede","mahimo",
+            "sulti","ingna","suliton","pangutana","tubag","pangita","maayo",
+            "salamat","palihug","pasensya","kadto","balik","mobalik","moadto",
+            "naghuna","huna","basta","mao","man","ba","ra","lang","pod","pud",
+            "kay","kay","oi","sus","ay","uy","aw","ah","ha","ge","sige",
+            "grabe","lagi","jud","gud","sad","pa","na","to"
+        }
+
+        # ── Tagalog blocklist ──
+        tagalog_words = {
+            "ano","saan","kailan","bakit","paano","magkano","sino","ilan",
+            "hindi","wala","meron","nandito","nandoon","nandyan","tayo",
+            "kayo","sila","kami","ako","ikaw","siya","namin","natin",
+            "ninyo","nila","niya","mo","ko","ba","na","pa","nga","lang",
+            "yung","ang","ng","sa","ni","kay","para","pero","kaya","dahil",
+            "kung","habang","ito","iyon","iyan","dito","doon","dyan",
+            "mayroon","mayroong","gusto","kailangan","pwede","maaari",
+            "dapat","sige","talaga","sobra","grabe","naman","palagi",
+            "madalas","minsan","lagi","lahat","ibang","iba","tama","mali",
+            "mabuti","masama","maganda","pangalan","trabaho","pamilya",
+            "bahay","pagkain","tubig","oras","araw","gabi","umaga","hapon",
+            "ngayon","bukas","kahapon","mahal","mura","malaki","maliit",
+            "marami","kaunti","sama","kasama","kami","tayo","kayo","sila",
+            "natin","namin","ninyo","nila","kanila","kanino","kanyang",
+            "aking","aming","inyong","kanilang","ating","narito","naroon",
+            "nariyan","doon","diyan","dito","yoon","yaan","yito","oo","hindi",
+            "opo","oho","hinde","ayaw","gusto","ibig","nais","mahal","ayos",
+            "sana","siguro","baka","halos","medyo","napaka","sobrang","talagang"
+        }
+
+        words = set(re.findall(r'\b[a-z]+\b', t))
+
+        # Count matches
+        bisaya_hits  = len(words & bisaya_words)
+        tagalog_hits = len(words & tagalog_words)
+
+        # If 2+ Bisaya OR 2+ Tagalog words found → not English
+        if bisaya_hits >= 2:
+            return False
+        if tagalog_hits >= 2:
+            return False
+        # Combined: 3+ total non-English words
+        if bisaya_hits + tagalog_hits >= 3:
+            return False
+
+        # Must be mostly ASCII letters (not Chinese, Arabic, etc.)
         ascii_chars = sum(1 for c in text if c.isalpha() and ord(c) < 128)
         total_alpha = sum(1 for c in text if c.isalpha())
-        if total_alpha == 0 or ascii_chars / total_alpha < 0.85:
+        if total_alpha == 0 or ascii_chars / total_alpha < 0.80:
             return False
+
+        # For longer texts, must contain at least one common English word
         common_en = {
             "i","the","a","an","is","are","was","were","my","me","we","it",
             "in","on","at","to","and","or","but","not","have","has","had",
             "be","been","do","did","will","would","can","could","should",
             "may","might","for","of","with","from","this","that","am",
-            "he","she","they","you","your","our","their","its"
+            "he","she","they","you","your","our","their","its","about",
+            "because","when","how","what","why","where","which","who"
         }
-        words = set(re.findall(r'\b[a-z]+\b', text.lower()))
-        if len(text.split()) >= 10 and len(words & common_en) == 0:
+        if len(words) >= 8 and len(words & common_en) == 0:
             return False
+
         return True
 
     def _dim(self, scores: List[Dict], key: str) -> float:
