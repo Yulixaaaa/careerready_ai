@@ -175,7 +175,7 @@ class AIModel:
             "kay","kay","oi","sus","ay","uy","aw","ah","ha","ge","sige",
             "grabe","lagi","jud","gud","sad","pa","na","to","sumbagon","awayon","pataka","bisan","miskan",
             "gihapon","gihimo","gikan","gusto","himo","himoa","himoan","kini","kana",
-            "kato","bahala",
+            "kato","bahala"
             }
 
         # ── Tagalog blocklist ──
