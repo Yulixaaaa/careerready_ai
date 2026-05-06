@@ -564,9 +564,52 @@ function fmtDate(iso){
 
 // ── JOBS ──
 function addQuestionToNewJob(){
-  const inp=document.getElementById("new-q-input");
-  const text=inp.value.trim();if(!text)return;
-  newJobQuestions.push(text);inp.value="";renderNewJobQ();
+  const inp  = document.getElementById("new-q-input");
+  const text = inp.value.trim();
+  if(!text) return;
+
+  const check = validateQuestionText(text);
+  if(!check.valid){
+    showQError("new-q-error", check.msg);
+    inp.focus();
+    return;
+  }
+  hideQError("new-q-error");
+  newJobQuestions.push(text);
+  inp.value = "";
+  renderNewJobQ();
+}
+
+function showQError(id, msg){
+  let el = document.getElementById(id);
+  if(!el){
+    el = document.createElement("div");
+    el.id = id;
+    el.style.cssText = "background:rgba(240,96,122,.1);border:1px solid rgba(240,96,122,.3);border-radius:8px;padding:10px 14px;font-size:.78rem;color:var(--danger);line-height:1.5;margin-top:6px";
+  }
+  el.textContent = msg;
+  // Insert after the q-input-row
+  const row = document.querySelector(".q-input-row");
+  if(row && row.parentNode) row.parentNode.insertBefore(el, row.nextSibling);
+  else document.getElementById("new-q-list")?.after(el);
+}
+
+function showQErrorNear(anchorId, msg){
+  let el = document.getElementById(anchorId+"-err");
+  if(!el){
+    el = document.createElement("div");
+    el.id = anchorId+"-err";
+    el.style.cssText = "background:rgba(240,96,122,.1);border:1px solid rgba(240,96,122,.3);border-radius:8px;padding:10px 14px;font-size:.78rem;color:var(--danger);line-height:1.5;margin-top:6px";
+    const anchor = document.getElementById(anchorId);
+    if(anchor) anchor.insertAdjacentElement("afterend", el);
+  }
+  el.textContent = msg;
+  setTimeout(()=>{ if(el.parentNode) el.parentNode.removeChild(el); }, 5000);
+}
+
+function hideQError(id){
+  const el = document.getElementById(id);
+  if(el && el.parentNode) el.parentNode.removeChild(el);
 }
 document.addEventListener("keypress",e=>{if(e.target.id==="new-q-input"&&e.key==="Enter"){e.preventDefault();addQuestionToNewJob()}});
 function renderNewJobQ(){
@@ -580,6 +623,14 @@ async function submitNewJob(){
   const desc=document.getElementById("new-job-desc").value.trim();
   if(!title){alert("Please enter a job title.");return}
   if(newJobQuestions.length<1){alert("Please add at least 1 question.");return}
+  // Validate all queued questions
+  for(let i=0;i<newJobQuestions.length;i++){
+    const check=validateQuestionText(newJobQuestions[i]);
+    if(!check.valid){
+      alert(`Question ${i+1}: ${check.msg}`);
+      return;
+    }
+  }
   try{
     const res=await fetch(API+"/admin/jobs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({job_title:title,description:desc,questions:newJobQuestions})});
     const data=await res.json();
@@ -663,6 +714,8 @@ function closeAddQModal(){document.getElementById("addq-modal").classList.add("h
 async function submitAddQuestion(){
   const text=document.getElementById("addq-text").value.trim();
   if(!text){alert("Please type a question.");return}
+  const check=validateQuestionText(text);
+  if(!check.valid){alert(check.msg);return}
   try{
     const res=await fetch(API+"/admin/jobs/"+addQJobId+"/questions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question_text:text})});
     if(res.ok){closeAddQModal();loadJobs()}
@@ -717,6 +770,8 @@ async function saveEditQ(qId){
   const inp=document.getElementById("qeinput-"+qId);
   const newText=inp?inp.value.trim():"";
   if(!newText){alert("Question cannot be empty.");return}
+  const check=validateQuestionText(newText);
+  if(!check.valid){alert(check.msg);return}
   try{
     const res=await fetch(API+"/admin/questions/"+qId,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({question_text:newText})});
     if(res.ok){document.getElementById("qspan-"+qId).textContent=newText;cancelEditQ(qId)}
@@ -767,6 +822,75 @@ setInterval(()=>{
   if(a&&a.id==="btn-users")loadUsers();
   if(a&&a.id==="btn-dashboard")loadDashboard();
 },30000);
+
+// ── ENGLISH DETECTION ──
+function isEnglish(text){
+  if(!text || text.trim().length === 0) return false;
+  const t = text.toLowerCase();
+  // Must be mostly ASCII letters
+  const alpha = (t.match(/[a-zA-Z]/g)||[]).length;
+  const total = (t.match(/[a-zA-ZÀ-ɏḀ-ỿ]/g)||[]).length;
+  if(total === 0) return false;
+  if(alpha / total < 0.80) return false;
+
+  // Common Bisaya/Filipino words to block
+  const blocked = [
+    // Bisaya
+    "unsa","asa","kanus","nganong","unsay","pila","giunsa","ngano","mahimo",
+    "dili","wala","naa","nato","nimo","niya","kita","sila","kami","nako",
+    "ikaw","siya","ako","gyud","kaayo","bitaw","man","ba","ug","sa","nga",
+    "ang","og","si","ni","mo","ko","ta","mi","kanimo","kaniya","atong",
+    "inyong","ilang","among","imong","iyang","atoa","ninyo","nila","nato",
+    "ilaha","kanato","kaninyo","gibuhat","buhaton","buhat","adto","diri",
+    "dinhi","diha","ingon","mao","pero","kung","para","karon","gahapon",
+    "ugma","tinuod","dako","gamay","daghan","gusto","kinahanglan","pwede",
+    "mahimo","sulti","ingna","suliton","pangutana","tubag","pangita",
+    // Tagalog
+    "ano","saan","kailan","bakit","paano","magkano","sino","ilan",
+    "hindi","wala","meron","nandito","nandoon","nandyan","tayo","kayo",
+    "sila","kami","ako","ikaw","siya","namin","natin","ninyo","nila",
+    "niya","mo","ko","ba","na","pa","nga","lang","yung","ang","ng",
+    "sa","ni","kay","para","pero","kaya","dahil","kung","habang",
+    "ito","iyon","iyan","dito","doon","dyan","mayroon","mayroong",
+    "gusto","kailangan","pwede","maaari","dapat","sige","talaga",
+    "sobra","grabe","naman","palagi","madalas","minsan","lagi",
+    "lahat","ibang","iba","tama","mali","mabuti","masama","maganda",
+    "pangalan","trabaho","pamilya","bahay","pagkain","tubig","oras"
+  ];
+
+  const words = t.replace(/[^a-z\s]/g,' ').split(/\s+/).filter(w => w.length > 1);
+  const flagged = words.filter(w => blocked.includes(w));
+
+  // If 2+ blocked words found, it's not English
+  if(flagged.length >= 2) return false;
+
+  // Must contain at least some common English words
+  const commonEn = new Set(["what","how","why","when","where","who","which",
+    "describe","explain","tell","your","you","the","a","an","is","are","was",
+    "were","have","has","had","do","does","did","will","would","can","could",
+    "should","may","might","about","with","from","this","that","give","share",
+    "discuss","experience","skills","work","team","problem","solution","handle",
+    "manage","create","develop","implement","use","need","want","think","believe",
+    "example","situation","result","approach","method","process","demonstrate",
+    "strength","weakness","challenge","achieve","goal","role","position"]);
+
+  const engHits = words.filter(w => commonEn.has(w)).length;
+  // For longer questions (5+ words), require at least 1 English signal word
+  if(words.length >= 5 && engHits === 0) return false;
+
+  return true;
+}
+
+function validateQuestionText(text){
+  const trimmed = text.trim();
+  if(!trimmed) return { valid: false, msg: "Question cannot be empty." };
+  if(trimmed.length < 10) return { valid: false, msg: "Question is too short. Please write a complete interview question." };
+  if(!isEnglish(trimmed)) return {
+    valid: false,
+    msg: "❌ Questions must be written in English. Bisaya and Tagalog questions are not allowed since this is an English mock interview platform."
+  };
+  return { valid: true };
+}
 
 // ── LOGOUT ──
 function logout(){localStorage.clear();window.location.href="/"}
@@ -841,6 +965,8 @@ function closeSuggestPanel(){
 function addSfromQ(){
   const inp=document.getElementById("sfrom-q-input");
   const text=inp.value.trim();if(!text)return;
+  const check=validateQuestionText(text);
+  if(!check.valid){alert(check.msg);inp.focus();return;}
   sfromQuestions.push(text);inp.value="";renderSfromQ();
 }
 document.addEventListener("keypress",e=>{if(e.target.id==="sfrom-q-input"&&e.key==="Enter"){e.preventDefault();addSfromQ()}});
@@ -855,6 +981,10 @@ async function submitJobFromSuggestion(){
   const desc=document.getElementById("sfrom-desc").value.trim();
   if(!title){alert("Please enter a job title.");return}
   if(sfromQuestions.length<1){alert("Please add at least 1 question.");return}
+  for(let i=0;i<sfromQuestions.length;i++){
+    const check=validateQuestionText(sfromQuestions[i]);
+    if(!check.valid){alert(`Question ${i+1}: ${check.msg}`);return}
+  }
 
   try{
     // Create the job
