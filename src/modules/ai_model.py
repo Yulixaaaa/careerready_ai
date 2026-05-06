@@ -173,8 +173,10 @@ class AIModel:
             "salamat","palihug","pasensya","kadto","balik","mobalik","moadto",
             "naghuna","huna","basta","mao","man","ba","ra","lang","pod","pud",
             "kay","kay","oi","sus","ay","uy","aw","ah","ha","ge","sige",
-            "grabe","lagi","jud","gud","sad","pa","na","to"
-        }
+            "grabe","lagi","jud","gud","sad","pa","na","to","sumbagon","awayon","pataka","bisan","miskan",
+            "gihapon","gihimo","gikan","gusto","himo","himoa","himoan","kini","kana",
+            "kato","bahala",
+            }
 
         # ── Tagalog blocklist ──
         tagalog_words = {
